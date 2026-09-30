@@ -1,24 +1,156 @@
-import React, { useState } from 'react';
-import { RotateCcw, Users, UserCheck, CheckCircle2, Search, Eye, UserPlus, CheckSquare, BarChart2, X, ChevronRight } from 'lucide-react';
-import { resolveRevaluation } from '../../api';
+import React, { useState, useEffect } from 'react';
+import { 
+  RotateCcw, 
+  Users, 
+  UserCheck, 
+  CheckCircle2, 
+  Search, 
+  Eye, 
+  EyeOff,
+  UserPlus, 
+  CheckSquare, 
+  BarChart2, 
+  X, 
+  ChevronRight,
+  Shield,
+  Mail,
+  Lock,
+  Trash2,
+  RefreshCw
+} from 'lucide-react';
+import { resolveRevaluation, getUsers, addUser, deleteUser, fetchDocumentPageCount, formatDeptSubject } from '../../api';
 import './AdministratorDashboard.css';
 
 export default function AdministratorDashboard({ 
+  currentUser,
   students = [], 
   teachers = [], 
+  subjects = [],
   metrics, 
   onInspectStudent, 
   onEvaluateStudent, 
   onViewDocument, 
-  onRefresh 
+  onRefresh,
+  onNotify
 }) {
-  const [activeTab, setActiveTab] = useState('teachers'); // 'revaluation' | 'students' | 'teachers'
+  const [activeTab, setActiveTab] = useState('teachers'); // 'revaluation' | 'students' | 'teachers' | 'admins'
   const [studentFilter, setStudentFilter] = useState('all'); // 'all' | 'allocated' | 'evaluated' | 'not_allocated'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTeacherForPerf, setSelectedTeacherForPerf] = useState(null);
 
+  // Admin Cell management state
+  const [admins, setAdmins] = useState([]);
+  const [isLoadingAdmins, setIsLoadingAdmins] = useState(false);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [newAdminName, setNewAdminName] = useState('');
+  const [newAdminDept, setNewAdminDept] = useState('');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [isAddingAdmin, setIsAddingAdmin] = useState(false);
+  const [adminSearchQuery, setAdminSearchQuery] = useState('');
+
+  // Fetch Admin Cell accounts for this university
+  const loadAdmins = async () => {
+    try {
+      setIsLoadingAdmins(true);
+      const list = await getUsers('admin');
+      setAdmins(Array.isArray(list) ? list : []);
+    } catch (err) {
+      console.error('Error fetching admins:', err);
+    } finally {
+      setIsLoadingAdmins(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAdmins();
+  }, []);
+
+  const handleAddAdmin = async (e) => {
+    e.preventDefault();
+    const cleanEmail = newAdminEmail.trim().toLowerCase();
+    const cleanPass = newAdminPassword.trim();
+
+    if (!cleanEmail || !cleanPass) {
+      if (typeof onNotify === 'function') onNotify('Admin Email and Password are mandatory fields.', 'warning');
+      return;
+    }
+
+    try {
+      setIsAddingAdmin(true);
+      await addUser({
+        email: cleanEmail,
+        password: cleanPass,
+        name: newAdminName.trim(),
+        role: 'admin',
+        department: newAdminDept.trim()
+      });
+
+      if (typeof onNotify === 'function') {
+        onNotify(`Admin Cell account "${cleanEmail}" provisioned successfully in MongoDB users.`, 'success');
+      }
+      setNewAdminEmail('');
+      setNewAdminPassword('');
+      setNewAdminName('');
+      setNewAdminDept('');
+      await loadAdmins();
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      if (typeof onNotify === 'function') onNotify(`Failed to create admin: ${err.message}`, 'error');
+    } finally {
+      setIsAddingAdmin(false);
+    }
+  };
+
+  const handleDeleteAdmin = async (targetEmail) => {
+    if (!window.confirm(`Are you sure you want to revoke access for Admin Cell officer "${targetEmail}"?`)) {
+      return;
+    }
+
+    try {
+      await deleteUser(targetEmail);
+      if (typeof onNotify === 'function') {
+        onNotify(`Admin Cell officer "${targetEmail}" deleted from university users.`, 'success');
+      }
+      await loadAdmins();
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      if (typeof onNotify === 'function') onNotify(`Failed to delete admin: ${err.message}`, 'error');
+    }
+  };
+
+  const [pageCounts, setPageCounts] = useState({});
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchMissingPageCounts = async () => {
+      for (const s of students) {
+        const id = s.id || s._id || s.enrollmentNumber || s.enrollment;
+        const url = s.copyUrl || s.copy_url || s.fileUrl || s.url;
+        if (!url || (s.totalPages && Number(s.totalPages) > 1)) continue;
+        if (pageCounts[id]) continue;
+        const clean = url.toLowerCase();
+        if (clean.includes('.png') || clean.includes('.jpg') || clean.includes('.jpeg') || clean.includes('.webp')) {
+          continue;
+        }
+        try {
+          const count = await fetchDocumentPageCount(url);
+          if (isMounted && count && count > 0) {
+            setPageCounts(prev => ({ ...prev, [id]: count }));
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    };
+    fetchMissingPageCounts();
+    return () => { isMounted = false; };
+  }, [students]);
+
   // Helper to accurately resolve page count of answer script
   const getPageCount = (item) => {
+    const id = item?.id || item?._id || item?.enrollmentNumber || item?.enrollment;
+    if (id && pageCounts[id] && pageCounts[id] > 0) return pageCounts[id];
     if (item?.totalPages && Number(item.totalPages) > 0) return Number(item.totalPages);
     if (item?.pages && Array.isArray(item.pages) && item.pages.length > 0) return item.pages.length;
     const url = (item?.copyUrl || item?.copy_url || item?.fileUrl || item?.url || '').toLowerCase();
@@ -132,6 +264,14 @@ export default function AdministratorDashboard({
           <UserCheck size={15} />
           Teachers Scrutiny & Performance ({teachers.length})
         </button>
+
+        <button 
+          className={`nav-tab ${activeTab === 'admins' ? 'active' : ''}`}
+          onClick={() => setActiveTab('admins')}
+        >
+          <Shield size={15} />
+          Add Admin ({admins.length})
+        </button>
       </div>
 
       {/* TAB 1: Revaluation Queue */}
@@ -157,7 +297,7 @@ export default function AdministratorDashboard({
                 <tr>
                   <th>Enrollment No</th>
                   <th>Student Name</th>
-                  <th>Subject</th>
+                  <th>Department : Subject</th>
                   <th>Flagged By</th>
                   <th>Discrepancy Reason</th>
                   <th>Preliminary Marks</th>
@@ -176,7 +316,7 @@ export default function AdministratorDashboard({
                     <tr key={s.id}>
                       <td className="mono" style={{ fontWeight: 700 }}>{s.enrollment}</td>
                       <td style={{ fontWeight: 600 }}>{s.studentName}</td>
-                      <td><span style={{ fontWeight: 600 }}>{s.subjectCode}</span>: {s.subjectTitle}</td>
+                      <td>{formatDeptSubject(s, subjects)}</td>
                       <td>{s.revaluation?.teacherEmail || s.allocatedTeacherName || 'Evaluator'}</td>
                       <td style={{ color: 'var(--accent-red)', maxWidth: '240px', fontSize: '11px' }}>
                         {s.revaluation?.reason || 'Discrepancy noted during grading.'}
@@ -193,7 +333,7 @@ export default function AdministratorDashboard({
                             style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                           >
                             <Eye size={12} />
-                            Inspect ({getPageCount(s)}P)
+                            Inspect
                           </button>
 
                           <button 
@@ -275,7 +415,7 @@ export default function AdministratorDashboard({
                 <tr>
                   <th>Enrollment No</th>
                   <th>Student Name</th>
-                  <th>Subject</th>
+                  <th>Department : Subject</th>
                   <th>Uploaded Date</th>
                   <th>Allocation Status</th>
                   <th>Evaluation Status</th>
@@ -300,7 +440,7 @@ export default function AdministratorDashboard({
                       <tr key={s.id}>
                         <td className="mono" style={{ fontWeight: 700 }}>{s.enrollmentNumber || s.enrollment}</td>
                         <td style={{ fontWeight: 600 }}>{s.name || s.studentName}</td>
-                        <td><span style={{ fontWeight: 600 }}>{s.subjectCode || s.subject}</span>: {s.subjectTitle || s.subject}</td>
+                        <td>{formatDeptSubject(s, subjects)}</td>
                         <td style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                           {new Date(s.uploadedDate || Date.now()).toLocaleDateString('en-IN')}
                         </td>
@@ -323,7 +463,7 @@ export default function AdministratorDashboard({
                             title="Inspect candidate answer copy"
                           >
                             <Eye size={13} />
-                            Inspect ({getPageCount(s)} {getPageCount(s) === 1 ? 'Page' : 'Pages'})
+                            Inspect
                           </button>
                         </td>
                       </tr>
@@ -349,7 +489,7 @@ export default function AdministratorDashboard({
               <thead>
                 <tr>
                   <th>Teacher Name</th>
-                  <th>Department</th>
+                  <th>Department : Subject</th>
                   <th>Login Email</th>
                   <th>Allocated Copies</th>
                   <th>Evaluated Copies</th>
@@ -373,7 +513,7 @@ export default function AdministratorDashboard({
                   return (
                     <tr key={t.email}>
                       <td style={{ fontWeight: 700 }}>{t.name}</td>
-                      <td>{t.department}</td>
+                      <td>{t.department ? (t.subject ? `${t.department} : ${t.subject}` : t.department) : (t.subject || '—')}</td>
                       <td className="mono" style={{ fontSize: '12px' }}>{t.email}</td>
                       <td style={{ fontWeight: 700 }}>{teacherStudents.length}</td>
                       <td style={{ color: '#34d399', fontWeight: 700 }}>{checkedCount}</td>
@@ -395,6 +535,224 @@ export default function AdministratorDashboard({
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: ADD ADMIN (Admin Cell Management) */}
+      {activeTab === 'admins' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 420px) 1fr', gap: '28px' }}>
+          {/* Add Admin Form Card */}
+          <div className="card" style={{ height: 'fit-content' }}>
+            <div className="card-header">
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Shield size={20} color="#FC6C26" /> Provision Admin Cell Account
+              </h3>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Create evaluation administrators who manage teacher assignments and scrutiny in this university.
+              </p>
+            </div>
+            <div className="card-body">
+              <form onSubmit={handleAddAdmin}>
+                <div className="form-group">
+                  <label>Admin Email <span style={{ color: '#FC6C26' }}>* (Mandatory)</span></label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    placeholder="e.g. admin.eval@university.ac.in"
+                    value={newAdminEmail}
+                    onChange={(e) => setNewAdminEmail(e.target.value)}
+                    required
+                  />
+                  <small style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
+                    Used for logging into this university's Admin portal.
+                  </small>
+                </div>
+
+                <div className="form-group">
+                  <label>Password <span style={{ color: '#FC6C26' }}>* (Mandatory)</span></label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showAdminPassword ? 'text' : 'password'}
+                      className="form-control"
+                      placeholder="Enter secure access password"
+                      value={newAdminPassword}
+                      onChange={(e) => setNewAdminPassword(e.target.value)}
+                      required
+                      style={{ paddingRight: '40px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowAdminPassword(!showAdminPassword)}
+                      tabIndex="-1"
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        display: 'flex'
+                      }}
+                    >
+                      {showAdminPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Admin Full Name (Optional)</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="e.g. Prof. Arvind Verma"
+                    value={newAdminName}
+                    onChange={(e) => setNewAdminName(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Department / Cell</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="e.g. Academic Scrutiny Board"
+                    value={newAdminDept}
+                    onChange={(e) => setNewAdminDept(e.target.value)}
+                  />
+                </div>
+
+                <button 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  style={{ width: '100%', justifyContent: 'center', marginTop: '16px' }}
+                  disabled={isAddingAdmin}
+                >
+                  {isAddingAdmin ? (
+                    <>
+                      <RefreshCw size={16} className="spin" />
+                      <span>Saving in MongoDB users...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Shield size={16} />
+                      <span>Provision Admin Officer</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {/* Admins Directory Card */}
+          <div className="card">
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Shield size={20} color="#10b981" /> Provisioned Admin Cell Officers ({admins.length})
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  Institutional accounts stored in this university's database <code>users</code> folder.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ position: 'relative', width: '220px' }}>
+                  <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search admin..."
+                    value={adminSearchQuery}
+                    onChange={(e) => setAdminSearchQuery(e.target.value)}
+                    style={{ paddingLeft: '32px', fontSize: '12px' }}
+                  />
+                </div>
+                <button 
+                  className="btn btn-secondary btn-sm"
+                  onClick={loadAdmins}
+                  title="Refresh admins list"
+                  disabled={isLoadingAdmins}
+                >
+                  <RefreshCw size={14} className={isLoadingAdmins ? 'spin' : ''} />
+                </button>
+              </div>
+            </div>
+
+            <div className="card-body" style={{ padding: 0 }}>
+              {admins.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+                  <Shield size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
+                  <p style={{ margin: 0, fontWeight: 600 }}>No Admin Cell officers provisioned yet.</p>
+                  <p style={{ fontSize: '12px', marginTop: '4px' }}>
+                    Use the form on the left to add admins with mandatory email & password.
+                  </p>
+                </div>
+              ) : (
+                <div className="table-responsive" style={{ margin: 0 }}>
+                  <table className="table" style={{ margin: 0 }}>
+                    <thead>
+                      <tr>
+                        <th>Officer / Name</th>
+                        <th>Email & Access Key</th>
+                        <th>Department / Cell</th>
+                        <th>Role & Access</th>
+                        <th style={{ textAlign: 'right' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {admins
+                        .filter(a => {
+                          if (!adminSearchQuery) return true;
+                          const q = adminSearchQuery.toLowerCase();
+                          return (
+                            (a.email && a.email.toLowerCase().includes(q)) ||
+                            (a.name && a.name.toLowerCase().includes(q)) ||
+                            (a.department && a.department.toLowerCase().includes(q))
+                          );
+                        })
+                        .map(a => (
+                          <tr key={a.email || a._id || a.id}>
+                            <td>
+                              <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                                {a.name || a.email}
+                              </div>
+                            </td>
+                            <td>
+                              <div className="mono" style={{ fontSize: '12px', color: 'var(--accent-orange)' }}>
+                                {a.email}
+                              </div>
+                            </td>
+                            <td>
+                              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                {a.department || '—'}
+                              </span>
+                            </td>
+                            <td>
+                              <span className="status-pill status-checked" style={{ fontSize: '11px' }}>
+                                Admin Cell
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <button
+                                className="btn btn-outline btn-sm"
+                                style={{ color: 'var(--accent-red)', borderColor: 'rgba(239, 68, 68, 0.3)', padding: '4px 8px' }}
+                                onClick={() => handleDeleteAdmin(a.email)}
+                                title="Revoke Admin Access"
+                              >
+                                <Trash2 size={13} /> Revoke
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -503,7 +861,7 @@ export default function AdministratorDashboard({
                       {t.name} — Detailed Performance
                     </h3>
                     <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>
-                      {t.email} • {t.department}
+                      {t.email} • {t.department}{t.subject ? ` : ${t.subject}` : ''}
                     </p>
                   </div>
                 </div>
@@ -566,7 +924,7 @@ export default function AdministratorDashboard({
                         <tr>
                           <th>Enrollment</th>
                           <th>Student Name</th>
-                          <th>Subject</th>
+                          <th>Department : Subject</th>
                           <th>Status</th>
                           <th>Score</th>
                           <th style={{ textAlign: 'center' }}>Script</th>
@@ -580,7 +938,7 @@ export default function AdministratorDashboard({
                             <tr key={s.id || s.enrollment}>
                               <td className="mono" style={{ fontWeight: 600 }}>{s.enrollmentNumber || s.enrollment}</td>
                               <td>{s.name || s.studentName}</td>
-                              <td>{s.subjectCode || s.subject}</td>
+                              <td>{formatDeptSubject(s, subjects)}</td>
                               <td>
                                 <span className={`status-pill ${isDone ? 'status-evaluated' : 'status-pending'}`} style={{ fontSize: '10px', padding: '2px 8px' }}>
                                   {isDone ? 'Checked' : 'Pending'}
@@ -593,7 +951,7 @@ export default function AdministratorDashboard({
                                   style={{ padding: '4px 10px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
                                   onClick={() => handleInspect(s)}
                                 >
-                                  <Eye size={11} /> Inspect ({getPageCount(s)} {getPageCount(s) === 1 ? 'Pg' : 'Pgs'})
+                                  <Eye size={11} /> Inspect
                                 </button>
                               </td>
                             </tr>

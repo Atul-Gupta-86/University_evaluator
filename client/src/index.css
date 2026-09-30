@@ -16,35 +16,102 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
 
 /* ==========================================================================
-   GLOBAL REMOVAL OF HORIZONTAL SCROLLBARS ACROSS ALL SECTIONS & WINDOWS
+   GLOBAL REMOVAL OF ALL SCROLLBARS (VERTICAL & HORIZONTAL) ACROSS WHOLE CODEBASE
    ========================================================================== */
+html,
+body,
 * {
-  scrollbar-width: thin;
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE and legacy Edge */
 }
 
-::-webkit-scrollbar:horizontal {
-  height: 0px !important;
+/* Chrome, Safari, Edge, WebKit, Blink: completely hide all scrollbars */
+::-webkit-scrollbar {
   display: none !important;
+  width: 0px !important;
+  height: 0px !important;
   background: transparent !important;
 }
 
+::-webkit-scrollbar:vertical {
+  display: none !important;
+  width: 0px !important;
+  height: 0px !important;
+  background: transparent !important;
+}
+
+::-webkit-scrollbar:horizontal {
+  display: none !important;
+  height: 0px !important;
+  width: 0px !important;
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-corner {
+  background: transparent !important;
+  border: none !important;
+  display: none !important;
+}
+
+html,
+body,
+#root,
+div,
+section,
+main,
+aside,
+article,
+textarea,
+ul,
+ol,
+table,
 .table-responsive,
 .nav-tabs,
 .table-scroll,
 .overflow-x-auto,
-[class*="table-responsive"] {
+.overflow-y-auto,
+.modal-backdrop,
+.modal-dialog,
+.modal-profile-dialog,
+.modal-doc-viewer,
+.admin-liquid-modal,
+[class*="table-responsive"],
+[class*="modal"],
+[class*="dialog"],
+[class*="scroll"],
+[class*="panel"],
+[class*="card"],
+[class*="container"] {
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
 }
 
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar,
+div::-webkit-scrollbar,
+section::-webkit-scrollbar,
+main::-webkit-scrollbar,
+aside::-webkit-scrollbar,
+textarea::-webkit-scrollbar,
 .table-responsive::-webkit-scrollbar,
 .nav-tabs::-webkit-scrollbar,
 .table-scroll::-webkit-scrollbar,
 .overflow-x-auto::-webkit-scrollbar,
-[class*="table-responsive"]::-webkit-scrollbar {
+.overflow-y-auto::-webkit-scrollbar,
+.modal-backdrop::-webkit-scrollbar,
+.modal-dialog::-webkit-scrollbar,
+[class*="table-responsive"]::-webkit-scrollbar,
+[class*="modal"]::-webkit-scrollbar,
+[class*="dialog"]::-webkit-scrollbar,
+[class*="scroll"]::-webkit-scrollbar,
+[class*="card"]::-webkit-scrollbar {
   display: none !important;
   width: 0px !important;
   height: 0px !important;
+  background: transparent !important;
 }
 
 :root,
@@ -1301,6 +1368,162 @@ body:not(.dark-mode) .modal-dialog,
 
 .ai-summary-body {
   flex: 1;
+}
+
+/* ---------------- Evaluation Studio: Dark Mode System ---------------- */
+body.dark-mode .evaluation-modal,
+.dark-mode .evaluation-modal,
+[data-theme="dark"] .evaluation-modal {
+  background: #090b10 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode .evaluation-header,
+.dark-mode .evaluation-header,
+[data-theme="dark"] .evaluation-header {
+  background: #0d1117 !important;
+  border-bottom: 1.5px solid rgba(245, 158, 11, 0.4) !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode .eval-badge,
+.dark-mode .eval-badge,
+[data-theme="dark"] .eval-badge {
+  background: #111827 !important;
+  color: #ffffff !important;
+  border-color: rgba(245, 158, 11, 0.5) !important;
+}
+
+body.dark-mode .eval-section-marking,
+.dark-mode .eval-section-marking,
+[data-theme="dark"] .eval-section-marking {
+  background: #0d1117 !important;
+  border-right: 1.5px solid rgba(245, 158, 11, 0.35) !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode .section-title,
+.dark-mode .section-title,
+[data-theme="dark"] .section-title {
+  color: #ffffff !important;
+}
+
+body.dark-mode .config-box,
+.dark-mode .config-box,
+[data-theme="dark"] .config-box {
+  background: rgba(245, 158, 11, 0.08) !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.4) !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode .question-row,
+.dark-mode .question-row,
+[data-theme="dark"] .question-row {
+  background: #111827 !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode .question-label,
+.dark-mode .question-label,
+[data-theme="dark"] .question-label {
+  color: #ffffff !important;
+}
+
+body.dark-mode .question-input-wrap input,
+.dark-mode .question-input-wrap input,
+[data-theme="dark"] .question-input-wrap input {
+  background: #090b10 !important;
+  color: #ffffff !important;
+  border: 1.5px solid #f59e0b !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5) !important;
+}
+
+body.dark-mode .question-input-wrap input:focus,
+.dark-mode .question-input-wrap input:focus,
+[data-theme="dark"] .question-input-wrap input:focus {
+  border-color: #fbbf24 !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3) !important;
+}
+
+body.dark-mode .question-max-label,
+.dark-mode .question-max-label,
+[data-theme="dark"] .question-max-label {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+body.dark-mode .eval-section-marking textarea,
+.dark-mode .eval-section-marking textarea,
+[data-theme="dark"] .eval-section-marking textarea {
+  background: #090b10 !important;
+  color: #ffffff !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+body.dark-mode .total-score-card,
+.dark-mode .total-score-card,
+[data-theme="dark"] .total-score-card {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border: 1.5px solid #f59e0b !important;
+}
+
+body.dark-mode .total-score-val,
+.dark-mode .total-score-val,
+[data-theme="dark"] .total-score-val {
+  color: #10b981 !important;
+}
+
+/* Center Section: Canvas Viewer in Dark Mode */
+body.dark-mode .eval-section-viewer,
+.dark-mode .eval-section-viewer,
+[data-theme="dark"] .eval-section-viewer {
+  background: #090b10 !important;
+}
+
+body.dark-mode .viewer-toolbar,
+.dark-mode .viewer-toolbar,
+[data-theme="dark"] .viewer-toolbar {
+  background: #0d1117 !important;
+  border-bottom: 1.5px solid rgba(245, 158, 11, 0.35) !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode .viewer-page-controls,
+.dark-mode .viewer-page-controls,
+[data-theme="dark"] .viewer-page-controls {
+  color: #ffffff !important;
+}
+
+body.dark-mode .viewer-canvas-container,
+.dark-mode .viewer-canvas-container,
+[data-theme="dark"] .viewer-canvas-container {
+  background: #090b10 !important;
+}
+
+body.dark-mode .answer-sheet-canvas-wrapper,
+.dark-mode .answer-sheet-canvas-wrapper,
+[data-theme="dark"] .answer-sheet-canvas-wrapper {
+  background: #161b22 !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.35) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Right Section: AI Summary in Dark Mode */
+body.dark-mode .eval-section-ai,
+.dark-mode .eval-section-ai,
+[data-theme="dark"] .eval-section-ai {
+  background: #0d1117 !important;
+  border-left: 1.5px solid rgba(245, 158, 11, 0.35) !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode .ai-summary-header,
+.dark-mode .ai-summary-header,
+[data-theme="dark"] .ai-summary-header {
+  background: transparent !important;
+  border-bottom: 1.5px solid rgba(245, 158, 11, 0.35) !important;
+  color: #ffffff !important;
 }
 
 /* ---------------- 2FA OTP & Profile Custom Components ---------------- */

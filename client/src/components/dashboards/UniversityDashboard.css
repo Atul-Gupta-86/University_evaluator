@@ -323,3 +323,22 @@ body:not(.dark-mode) .modal-backdrop {
 .light-mode .server-status-pill span {
   color: #064E3B !important;
 }
+
+/* Universal scrollbar removal for University Dashboard & Light Mode */
+.university-theme,
+.university-theme *,
+.light-mode,
+.light-mode * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.university-theme ::-webkit-scrollbar,
+.light-mode ::-webkit-scrollbar,
+.university-theme *::-webkit-scrollbar,
+.light-mode *::-webkit-scrollbar {
+  display: none !important;
+  width: 0px !important;
+  height: 0px !important;
+  background: transparent !important;
+}

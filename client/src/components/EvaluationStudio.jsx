@@ -214,18 +214,26 @@ export default function EvaluationStudio({
     }
   };
 
+  const isTeacher = currentUser?.role === 'teacher' || currentUser?.role === 'evaluator';
+  const rawEnroll = student.enrollment || student.enrollmentNumber || '';
+  const displayEnrollment = isTeacher && rawEnroll
+    ? (String(rawEnroll).length > 4 ? String(rawEnroll).slice(0, -4) + 'XXXX' : 'XXXX')
+    : (rawEnroll || 'Candidate');
+
   return (
     <div className="evaluation-modal">
       {/* Top Header */}
       <div className="evaluation-header">
         <div className="eval-student-meta">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontWeight: 800, fontSize: '15px' }}>{student.enrollment}</span>
-            <span className="eval-badge">{student.studentName}</span>
+            <span style={{ fontWeight: 800, fontSize: '15px' }}>{displayEnrollment}</span>
+            {!isTeacher && (student.studentName || student.name) && (
+              <span className="eval-badge">{student.studentName || student.name}</span>
+            )}
           </div>
 
           <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-            <strong>{student.subjectCode}</strong>: {student.subjectTitle} | Session: {student.examSession}
+            <strong>{student.department ? `${student.department} : ` : ''}</strong>{student.subjectTitle || student.subjectCode || student.subject} {student.examSession ? `| Session: ${student.examSession}` : ''}
           </div>
         </div>
 
@@ -420,7 +428,7 @@ export default function EvaluationStudio({
             ) : (
               <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                 <h3>Digital Canvas Script</h3>
-                <p>Candidate: {student.studentName} ({student.enrollment})</p>
+                <p>Candidate: {isTeacher ? displayEnrollment : `${student.studentName || 'Candidate'} (${displayEnrollment})`}</p>
               </div>
             )}
           </div>

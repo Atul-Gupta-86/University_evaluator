@@ -1016,3 +1016,22 @@ body:not(.dark-mode) .admin-nested-kpi-card {
 .dark-mode .server-status-pill span {
   color: #fbbf24 !important;
 }
+
+/* Universal scrollbar removal for Administrator Dashboard */
+.administrator-theme,
+.administrator-theme *,
+.dark-mode,
+.dark-mode * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.administrator-theme ::-webkit-scrollbar,
+.dark-mode ::-webkit-scrollbar,
+.administrator-theme *::-webkit-scrollbar,
+.dark-mode *::-webkit-scrollbar {
+  display: none !important;
+  width: 0px !important;
+  height: 0px !important;
+  background: transparent !important;
+}

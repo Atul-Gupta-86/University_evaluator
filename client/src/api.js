@@ -7,8 +7,23 @@ const API_BASE = '/api';
 
 export async function request(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
+  let currentUnivId = options.universityId || '';
+  if (!currentUnivId) {
+    try {
+      currentUnivId = localStorage.getItem('mponline_university_id') || '';
+      if (!currentUnivId) {
+        const u = localStorage.getItem('mponline_user');
+        if (u) {
+          const parsed = JSON.parse(u);
+          currentUnivId = parsed.universityId || '';
+        }
+      }
+    } catch (_) {}
+  }
+
   const headers = {
     'Content-Type': 'application/json',
+    ...(currentUnivId ? { 'X-University-Id': currentUnivId } : {}),
     ...(options.headers || {})
   };
 
@@ -25,25 +40,41 @@ export async function request(endpoint, options = {}) {
   }
 }
 
+// ---------------- Multi-Tenant Universities ----------------
+export async function getUniversities() {
+  const res = await request('/universities');
+  return res.universities || [];
+}
+
+export async function registerUniversity(universityData) {
+  return request('/universities/register', {
+    method: 'POST',
+    body: JSON.stringify(universityData)
+  });
+}
+
 // ---------------- Authentication & 2FA Real OTP ----------------
-export async function loginRequest(email, password) {
+export async function loginRequest(email, password, universityId = null) {
   return request('/auth/login-request', {
     method: 'POST',
-    body: JSON.stringify({ email, password })
+    universityId,
+    body: JSON.stringify({ email, password, universityId })
   });
 }
 
-export async function verifyLoginOtp(email, otp) {
+export async function verifyLoginOtp(email, otp, universityId = null) {
   return request('/auth/verify-login-otp', {
     method: 'POST',
-    body: JSON.stringify({ email, otp })
+    universityId,
+    body: JSON.stringify({ email, otp, universityId })
   });
 }
 
-export async function directLogin(email, password) {
+export async function directLogin(email, password, universityId = null) {
   return request('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password })
+    universityId,
+    body: JSON.stringify({ email, password, universityId })
   });
 }
 
@@ -127,6 +158,7 @@ export async function getStudents() {
       _id: s._id || s.id,
       enrollmentNumber: s.enrollmentNumber || s.enrollment || 'UNKNOWN',
       name: s.name || s.studentName || 'Candidate',
+      department: s.department || s.departmentName || 'Academic',
       subject: s.subject || s.subjectTitle || s.subjectCode || 'General',
       subjectCode: s.subjectCode || s.subject || '',
       status: isEvaluated ? 'Evaluated' : (isReval ? 'Sent for Revaluation' : (isAllocated ? 'Allocated' : 'Unallocated')),
@@ -149,8 +181,9 @@ export async function uploadStudent(payload) {
   const mappedPayload = {
     enrollment: payload.enrollmentNumber || payload.enrollment,
     studentName: payload.name || payload.studentName,
+    department: payload.department || payload.departmentName || 'Academic',
     subjectCode: payload.subjectCode || payload.subject,
-    subjectTitle: payload.subject || payload.subjectTitle,
+    subjectTitle: payload.subjectTitle || payload.subject || 'Examination Script',
     academicYear: payload.academicYear || '2025-2026',
     examSession: payload.examSession || 'December',
     copy_url: payload.copyUrl || payload.copy_url || payload.fileUrl,
@@ -168,6 +201,33 @@ export async function uploadStudent(payload) {
 }
 
 export const createStudent = uploadStudent;
+
+// Guaranteed universal formatter for Department : Subject format
+export function formatDeptSubject(student, subjects = []) {
+  if (!student) return 'Academic : General';
+  let dept = (student.department || student.departmentName || '').trim();
+  const subj = (student.subjectTitle || student.subject || student.subjectCode || 'General').trim();
+  
+  if (!dept && Array.isArray(subjects) && subjects.length > 0) {
+    const match = subjects.find(sub => 
+      (sub.code && (sub.code === student.subjectCode || sub.code === student.subject)) ||
+      (sub.title && (sub.title === student.subjectTitle || sub.title === student.subject)) ||
+      (sub.name && (sub.name === student.subjectTitle || sub.name === student.subject))
+    );
+    if (match && match.department) {
+      dept = match.department.trim();
+    }
+  }
+  
+  if (!dept) dept = 'Academic';
+
+  // If subj already starts with dept + ' :', avoid duplicating
+  if (subj.toLowerCase().startsWith(dept.toLowerCase() + ' :') || subj.toLowerCase().startsWith(dept.toLowerCase() + ':')) {
+    return subj;
+  }
+
+  return `${dept} : ${subj}`;
+}
 
 export async function fetchDocumentPageCount(url, publicId = null) {
   try {
@@ -234,9 +294,24 @@ export async function deleteTeacher(emailOrId) {
 
 export const removeTeacher = deleteTeacher;
 
-export async function getUsers() {
-  const res = await request('/users');
+export async function getUsers(role = null) {
+  const query = role ? `?role=${encodeURIComponent(role)}` : '';
+  const res = await request(`/users${query}`);
   return res.users || [];
+}
+
+export async function addUser(userData) {
+  return request('/users/add', {
+    method: 'POST',
+    body: JSON.stringify(userData)
+  });
+}
+
+export async function deleteUser(emailOrId) {
+  return request('/users/remove', {
+    method: 'POST',
+    body: JSON.stringify({ email: emailOrId })
+  });
 }
 
 // ---------------- University Subjects Catalog ----------------

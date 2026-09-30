@@ -1,60 +1,8 @@
 require('dotenv').config();
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/mponline_evaluation';
-const DB_NAME = 'mponline_evaluation_db';
-
-// Seed defaults held strictly in-memory (no local file database)
-const DEFAULT_USERS = [
-  {
-    email: 'admin@gmail.com',
-    password: 'admin123',
-    name: 'Admin Cell Head',
-    role: 'admin',
-    department: 'Academic Scrutiny Board'
-  },
-  {
-    email: 'administrator@gmail.com',
-    password: 'admin123',
-    name: 'Chief Administrator',
-    role: 'administrator',
-    department: 'Apex Examination Authority'
-  },
-  {
-    email: 'university@gmail.com',
-    password: 'univ123',
-    name: 'University Examination Cell',
-    role: 'university',
-    department: 'Central Intake Cell'
-  },
-  {
-    email: 'teacher@gmail.com',
-    password: 'teacher123',
-    name: 'Evaluator Teacher',
-    role: 'teacher',
-    department: 'Computer Science & Engineering',
-    maxLoad: 100,
-    status: 'active'
-  }
-];
-
-const DEFAULT_SUBJECTS = [];
-const DEFAULT_DEPARTMENTS = [];
-
-const DEFAULT_TEACHERS = [
-  {
-    id: 'tch_primary_1',
-    email: 'teacher@gmail.com',
-    password: 'teacher123',
-    name: 'Evaluator Teacher',
-    role: 'teacher',
-    department: 'Computer Science & Engineering',
-    maxLoad: 100,
-    status: 'active'
-  }
-];
-
-const DEFAULT_REFERENCES = [];
+const CENTRAL_DB_NAME = 'mponline_central';
 
 function extractCleanUrl(val) {
   if (!val) return null;
@@ -86,16 +34,8 @@ class MongoDBHandler {
   constructor() {
     this.uri = MONGODB_URI;
     this.client = null;
-    this.db = null;
+    this.centralDb = null;
     this.isConnected = false;
-
-    // Purely in-memory buffer (NO local file / NO disk database)
-    this.memoryUsers = [...DEFAULT_USERS];
-    this.memoryTeachers = [...DEFAULT_TEACHERS];
-    this.memoryStudents = [];
-    this.memoryReferences = [...DEFAULT_REFERENCES];
-    this.memorySubjects = [...DEFAULT_SUBJECTS];
-    this.memoryDepartments = [...DEFAULT_DEPARTMENTS];
 
     this.connect();
     this.startAutoReconnect();
@@ -104,58 +44,48 @@ class MongoDBHandler {
   async connect() {
     try {
       this.client = new MongoClient(this.uri, {
-        serverSelectionTimeoutMS: 5000,
-        connectTimeoutMS: 5000
+        serverSelectionTimeoutMS: 15000,
+        connectTimeoutMS: 15000
       });
       await this.client.connect();
-      this.db = this.client.db(DB_NAME);
+      this.centralDb = this.client.db(CENTRAL_DB_NAME);
       this.isConnected = true;
-      console.log(`[MongoDB] Connected successfully to MongoDB Database: "${DB_NAME}"`);
+      console.log(`[MongoDB Multi-Tenant] Connected successfully to Cluster. Central DB: "${CENTRAL_DB_NAME}"`);
 
-      // Initialize separate collections and unique indexes
-      const teachersCollection = this.db.collection('teachers');
-      await teachersCollection.createIndex({ email: 1 }, { unique: true });
+      // Initialize Central Universities Registry indexes
+      const univCol = this.centralDb.collection('universities');
+      await univCol.createIndex({ universityId: 1 }, { unique: true });
+      await univCol.createIndex({ code: 1 }, { unique: true });
 
-      const studentsCollection = this.db.collection('students');
-      await studentsCollection.createIndex({ enrollment: 1, subjectCode: 1 });
-
-      const usersCollection = this.db.collection('users');
-      await usersCollection.createIndex({ email: 1 }, { unique: true });
-
-      const refsCollection = this.db.collection('answer_references');
-      await refsCollection.createIndex({ subjectCode: 1 });
-
-      const subjectsCollection = this.db.collection('subjects');
-      await subjectsCollection.createIndex({ code: 1 }, { unique: true });
-
-      const deptsCollection = this.db.collection('departments');
-      await deptsCollection.createIndex({ code: 1 }, { unique: true });
-
-      // Strictly keep ONLY the 4 authorized login accounts in MongoDB users collection
-      const allowedEmails = DEFAULT_USERS.map(u => u.email.toLowerCase());
-      await usersCollection.deleteMany({ email: { $nin: allowedEmails } });
-      for (const u of DEFAULT_USERS) {
-        await usersCollection.updateOne(
-          { email: u.email.toLowerCase() },
-          { $set: u },
-          { upsert: true }
-        );
-      }
-
-      // Strictly keep ONLY the official evaluator teacher in teachers collection
-      await teachersCollection.deleteMany({ email: { $ne: 'teacher@gmail.com' } });
-      for (const t of DEFAULT_TEACHERS) {
-        await teachersCollection.updateOne(
-          { email: t.email.toLowerCase() },
-          { $set: t },
-          { upsert: true }
-        );
-      }
-
-      console.log('[MongoDB] Collections initialized: strictly 4 authorized login accounts retained.');
+      const count = await univCol.countDocuments();
+      console.log(`[MongoDB Multi-Tenant] Central DB initialized with ${count} registered universities from MongoDB.`);
     } catch (e) {
       this.isConnected = false;
-      console.warn(`[MongoDB Notice] Could not connect to Atlas server (${e.message}). Operating with pure in-memory cache until Atlas IP access is enabled.`);
+      console.warn(`[MongoDB Error] Could not connect to Atlas cluster: ${e.message}`);
+    }
+  }
+
+  async ensureConnected() {
+    if (!this.isConnected || !this.client || !this.centralDb) {
+      await this.connect();
+    }
+    if (!this.isConnected || !this.client) {
+      throw new Error('Database connection unavailable. Please check MongoDB Atlas connection.');
+    }
+  }
+
+  async initTenantDatabase(dbName) {
+    await this.ensureConnected();
+    try {
+      const tenantDb = this.client.db(dbName);
+      await tenantDb.collection('users').createIndex({ email: 1 }, { unique: true });
+      await tenantDb.collection('teachers').createIndex({ email: 1 }, { unique: true });
+      await tenantDb.collection('students').createIndex({ enrollment: 1, subjectCode: 1 });
+      await tenantDb.collection('departments').createIndex({ code: 1 }, { unique: true });
+      await tenantDb.collection('subjects').createIndex({ code: 1 }, { unique: true });
+      await tenantDb.collection('answer_references').createIndex({ subjectCode: 1 });
+    } catch (err) {
+      console.warn(`[initTenantDatabase Warn] ${dbName}:`, err.message);
     }
   }
 
@@ -172,31 +102,189 @@ class MongoDBHandler {
   getStatus() {
     return {
       connected: this.isConnected,
-      database: DB_NAME,
-      collections: ['teachers', 'students', 'users', 'answer_references', 'subjects'],
-      storageMode: this.isConnected ? 'mongodb_atlas' : 'memory_sync_active'
+      architecture: 'Multi-Tenant (Approach A: Separate Database per University)',
+      centralDatabase: CENTRAL_DB_NAME,
+      storageMode: 'mongodb_atlas_multi_db'
     };
   }
 
   // ==============================================================
-  // 1. Separate Teacher Schema Operations (MongoDB 'teachers' collection)
+  // Multi-Tenant University Management (Central DB: 'mponline_central')
   // ==============================================================
-  async getAllTeachers() {
-    if (this.isConnected && this.db) {
-      try {
-        const teachers = await this.db.collection('teachers').find({}).toArray();
-        return teachers.map(t => {
-          const { _id, ...rest } = t;
-          return rest;
-        });
-      } catch (e) {
-        console.error('[MongoDB] Fetch teachers failed:', e.message);
-      }
+
+  async getAllUniversities() {
+    await this.ensureConnected();
+    try {
+      const docs = await this.centralDb.collection('universities').find({}).sort({ name: 1 }).toArray();
+      return (docs || []).map(d => {
+        const { _id, ...rest } = d;
+        return rest;
+      });
+    } catch (e) {
+      console.error('[MongoDB] Fetch universities failed:', e.message);
+      return [];
     }
-    return this.memoryTeachers;
   }
 
-  async insertTeacher(teacherData) {
+  async resolveUniversity(universityIdOrCode) {
+    await this.ensureConnected();
+    if (!universityIdOrCode) {
+      const first = await this.centralDb.collection('universities').findOne({});
+      if (first) {
+        const { _id, ...rest } = first;
+        return rest;
+      }
+      return null;
+    }
+
+    const cleanKey = universityIdOrCode.toString().trim();
+    try {
+      const found = await this.centralDb.collection('universities').findOne({
+        $or: [
+          { universityId: cleanKey },
+          { code: cleanKey.toUpperCase() },
+          { email: cleanKey.toLowerCase() },
+          { dbName: cleanKey.toLowerCase() }
+        ]
+      });
+      if (found) {
+        const { _id, ...rest } = found;
+        return rest;
+      }
+    } catch (e) {
+      console.warn('[MongoDB] Resolve university failed:', e.message);
+    }
+    return null;
+  }
+
+  async getTenantDb(universityIdOrCode) {
+    const univ = await this.resolveUniversity(universityIdOrCode);
+    if (!univ) {
+      return { db: null, univ: null };
+    }
+    await this.ensureConnected();
+    const db = (this.client && univ.dbName) ? this.client.db(univ.dbName) : null;
+    return { db, univ };
+  }
+
+  /**
+   * Only universities can register!
+   * Generates a completely separate database `univ_<code_lowercase>` on MongoDB.
+   */
+  async registerUniversity(data) {
+    await this.ensureConnected();
+
+    if (!data.name || !data.code || !data.email || !data.password) {
+      throw new Error('University Name, University Code, Official Email, and Password are required.');
+    }
+
+    const cleanCode = data.code.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '');
+    const cleanEmail = data.email.trim().toLowerCase();
+    const cleanName = data.name.trim();
+
+    if (!cleanCode || cleanCode.length < 2) {
+      throw new Error('University Code must be at least 2 alphanumeric characters (e.g. DAVV, BU, RGPV).');
+    }
+
+    const universityId = `MP_UNIV_${cleanCode}`;
+    const dbName = `univ_${cleanCode.toLowerCase()}`;
+
+    // Verify uniqueness directly in live MongoDB central database
+    const existing = await this.centralDb.collection('universities').findOne({
+      $or: [
+        { universityId },
+        { code: cleanCode },
+        { email: cleanEmail },
+        { dbName }
+      ]
+    });
+
+    if (existing) {
+      if (existing.code === cleanCode) {
+        throw new Error(`University Code "${cleanCode}" is already registered with "${existing.name}".`);
+      }
+      if (existing.email === cleanEmail) {
+        throw new Error(`Email "${cleanEmail}" is already registered to a university account.`);
+      }
+      throw new Error(`University database identifier "${dbName}" already exists on cluster.`);
+    }
+
+    const univDoc = {
+      universityId,
+      code: cleanCode,
+      name: cleanName,
+      dbName,
+      email: cleanEmail,
+      city: (data.city || 'Madhya Pradesh').trim(),
+      state: (data.state || 'Madhya Pradesh').trim(),
+      status: 'active',
+      createdAt: new Date().toISOString()
+    };
+
+    // 1. Save directly in Central Registry (mponline_central.universities)
+    await this.centralDb.collection('universities').insertOne(univDoc);
+
+    // 2. Provision Isolated Tenant Database collections on MongoDB Cluster
+    await this.initTenantDatabase(dbName);
+
+    // 3. Create the official University Account inside the tenant database users collection
+    const univUser = {
+      email: cleanEmail,
+      password: data.password,
+      name: cleanName,
+      role: 'university',
+      department: 'University Examination Cell',
+      universityId,
+      universityName: cleanName,
+      createdAt: new Date().toISOString()
+    };
+
+    const tenantDb = this.client.db(dbName);
+    await tenantDb.collection('users').updateOne(
+      { email: cleanEmail },
+      { $set: univUser },
+      { upsert: true }
+    );
+
+    console.log(`[MongoDB Multi-Tenant] Successfully registered University "${cleanName}" (${cleanCode}). Database: "${dbName}".`);
+
+    return {
+      success: true,
+      university: {
+        universityId: univDoc.universityId,
+        code: univDoc.code,
+        name: univDoc.name,
+        email: univDoc.email,
+        city: univDoc.city,
+        state: univDoc.state,
+        status: univDoc.status,
+        createdAt: univDoc.createdAt
+      }
+    };
+  }
+
+  // ==============================================================
+  // 1. Teacher Schema Operations (Scoped to Tenant Database)
+  // ==============================================================
+  async getAllTeachers(universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId);
+    if (!univ || !tenantDb) return [];
+
+    try {
+      const teachers = await tenantDb.collection('teachers').find({}).toArray();
+      return teachers.map(t => {
+        const { _id, ...rest } = t;
+        return { ...rest, universityId: univ.universityId, universityName: univ.name };
+      });
+    } catch (e) {
+      console.error(`[MongoDB] Fetch teachers from ${univ.dbName} failed:`, e.message);
+      return [];
+    }
+  }
+
+  async insertTeacher(teacherData, universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId || teacherData.universityId);
+    if (!univ || !tenantDb) throw new Error('University database unavailable.');
     const cleanEmail = teacherData.email.trim().toLowerCase();
     const cleanTeacher = {
       id: teacherData.id || `tch_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
@@ -208,262 +296,206 @@ class MongoDBHandler {
       role: 'teacher',
       maxLoad: Number(teacherData.maxLoad) || 100,
       createdAt: teacherData.createdAt || new Date().toISOString(),
-      status: 'active'
+      status: 'active',
+      universityId: univ.universityId,
+      universityName: univ.name
     };
 
-    // Save directly to MongoDB separate 'teachers' collection
-    if (this.isConnected && this.db) {
-      try {
-        await this.db.collection('teachers').updateOne(
-          { email: cleanEmail },
-          { $set: cleanTeacher },
-          { upsert: true }
-        );
-        console.log(`[MongoDB] Teacher "${cleanTeacher.name}" saved directly to separate 'teachers' collection!`);
-
-        // Also save to users collection for unified authentication
-        await this.db.collection('users').updateOne(
-          { email: cleanEmail },
-          { $set: cleanTeacher },
-          { upsert: true }
-        );
-      } catch (e) {
-        console.error('[MongoDB] Insert teacher into teachers collection failed:', e.message);
-      }
-    }
-
-    // In-memory buffer sync
-    const idx = this.memoryTeachers.findIndex(t => t.email.toLowerCase() === cleanEmail);
-    if (idx >= 0) {
-      this.memoryTeachers[idx] = cleanTeacher;
-    } else {
-      this.memoryTeachers.push(cleanTeacher);
-    }
-
-    const uIdx = this.memoryUsers.findIndex(u => u.email.toLowerCase() === cleanEmail);
-    if (uIdx >= 0) {
-      this.memoryUsers[uIdx] = cleanTeacher;
-    } else {
-      this.memoryUsers.push(cleanTeacher);
-    }
-
+    await tenantDb.collection('teachers').updateOne(
+      { email: cleanEmail },
+      { $set: cleanTeacher },
+      { upsert: true }
+    );
+    await tenantDb.collection('users').updateOne(
+      { email: cleanEmail },
+      { $set: cleanTeacher },
+      { upsert: true }
+    );
+    console.log(`[MongoDB Multi-Tenant] Teacher "${cleanTeacher.name}" saved into ${univ.dbName}.teachers!`);
     return cleanTeacher;
   }
 
-  async deleteTeacher(emailOrId) {
+  async deleteTeacher(emailOrId, universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId);
+    if (!univ || !tenantDb) throw new Error('University database unavailable.');
     const key = (emailOrId || '').trim().toLowerCase();
-    if (this.isConnected && this.db) {
-      try {
-        await this.db.collection('teachers').deleteOne({
-          $or: [{ email: key }, { id: key }]
-        });
-        await this.db.collection('users').deleteOne({
-          $or: [{ email: key }, { id: key }],
-          role: 'teacher'
-        });
-        console.log(`[MongoDB] Teacher "${key}" deleted successfully.`);
-      } catch (e) {
-        console.error('[MongoDB] Delete teacher failed:', e.message);
-      }
-    }
 
-    this.memoryTeachers = this.memoryTeachers.filter(t => t.email.toLowerCase() !== key && t.id !== key);
-    this.memoryUsers = this.memoryUsers.filter(u => !(u.role === 'teacher' && (u.email.toLowerCase() === key || u.id === key)));
+    await tenantDb.collection('teachers').deleteOne({
+      $or: [{ email: key }, { id: key }]
+    });
+    await tenantDb.collection('users').deleteOne({
+      $or: [{ email: key }, { id: key }],
+      role: 'teacher'
+    });
+    console.log(`[MongoDB Multi-Tenant] Teacher "${key}" deleted from ${univ.dbName}.`);
     return { success: true, key };
   }
 
   // ==============================================================
-  // 2. Student Schema Operations (MongoDB 'students' collection)
-  // Field "copy_url" explicitly holds Cloudinary return URL
+  // 2. Student Schema Operations (Scoped to Tenant Database)
   // ==============================================================
-  async insertStudent(student) {
+  async insertStudent(student, universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId || student.universityId);
+    if (!univ || !tenantDb) throw new Error('University database unavailable.');
     const rawCopy = student.copy_url || student.fileUrl || null;
     const cleanUrl = extractCleanUrl(rawCopy);
     const studentDoc = {
       ...student,
       copy_url: cleanUrl,
       fileUrl: cleanUrl,
-      storageProvider: cleanUrl && cleanUrl.includes('cloudinary') ? 'cloudinary' : (student.storageProvider || 'local')
+      storageProvider: cleanUrl && cleanUrl.includes('cloudinary') ? 'cloudinary' : (student.storageProvider || 'local'),
+      universityId: univ.universityId,
+      universityName: univ.name
     };
 
-    // Save directly to MongoDB 'students' collection
-    if (this.isConnected && this.db) {
-      try {
-        const collection = this.db.collection('students');
-        await collection.updateOne(
-          { enrollment: studentDoc.enrollment, subjectCode: studentDoc.subjectCode },
-          { $set: studentDoc },
-          { upsert: true }
-        );
-        console.log(`[MongoDB] Student "${studentDoc.enrollment}" saved to MongoDB students collection with copy_url: ${studentDoc.copy_url}`);
-      } catch (e) {
-        console.error('[MongoDB] Insert student failed:', e.message);
-      }
-    }
-
-    // In-memory buffer sync
-    const idx = this.memoryStudents.findIndex(s => s.enrollment === studentDoc.enrollment && s.subjectCode === studentDoc.subjectCode);
-    if (idx >= 0) {
-      this.memoryStudents[idx] = studentDoc;
-    } else {
-      this.memoryStudents.unshift(studentDoc);
-    }
-
+    await tenantDb.collection('students').updateOne(
+      { enrollment: studentDoc.enrollment, subjectCode: studentDoc.subjectCode },
+      { $set: studentDoc },
+      { upsert: true }
+    );
+    console.log(`[MongoDB Multi-Tenant] Student "${studentDoc.enrollment}" saved to ${univ.dbName}.students`);
     return studentDoc;
   }
 
-  async getAllStudents() {
-    let list = [];
-    if (this.isConnected && this.db) {
-      try {
-        const collection = this.db.collection('students');
-        const docs = await collection.find({}).sort({ uploadDate: -1 }).toArray();
-        list = docs.map(d => {
-          const stringId = d.id || (d._id ? d._id.toString() : `std_${Date.now()}`);
-          const cleanUrl = extractCleanUrl(d.copy_url || d.fileUrl || d.copyUrl);
-          const isImg = (cleanUrl && /\.(png|jpg|jpeg|webp)($|\?)/i.test(cleanUrl)) || (d.fileName && /\.(png|jpg|jpeg|webp)$/i.test(d.fileName));
-          const normalizedPages = isImg ? 1 : (Number(d.totalPages) || (d.pages && d.pages.length ? d.pages.length : 1));
-          return {
-            ...d,
-            _id: stringId,
-            id: stringId,
-            copy_url: cleanUrl,
-            fileUrl: cleanUrl,
-            copyUrl: cleanUrl,
-            totalPages: normalizedPages
-          };
-        });
-      } catch (e) {
-        console.error('[MongoDB] Fetch students failed:', e.message);
-        list = this.memoryStudents;
-      }
-    } else {
-      list = this.memoryStudents;
-    }
-
-    // Ensure teacher names are populated if email/id exists
-    let teachers = [];
-    try {
-      teachers = await this.getAllTeachers();
-    } catch (_) {
-      teachers = this.memoryTeachers || [];
-    }
-
-    const teacherMap = new Map();
-    teachers.forEach(t => {
-      if (t.email) teacherMap.set(t.email.toLowerCase(), t.name);
-      if (t.id) teacherMap.set(t.id, t.name);
-    });
+  async getAllStudents(universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId);
+    if (!univ || !tenantDb) return [];
 
     try {
-      const users = await this.getAllUsers();
-      users.forEach(u => {
-        if (u.name && u.email && !teacherMap.has(u.email.toLowerCase())) {
-          teacherMap.set(u.email.toLowerCase(), u.name);
-        }
+      const docs = await tenantDb.collection('students').find({}).sort({ uploadDate: -1 }).toArray();
+      return docs.map(d => {
+        const stringId = d.id || (d._id ? d._id.toString() : `std_${Date.now()}`);
+        const cleanUrl = extractCleanUrl(d.copy_url || d.fileUrl || d.copyUrl);
+        const isImg = (cleanUrl && /\.(png|jpg|jpeg|webp)($|\?)/i.test(cleanUrl)) || (d.fileName && /\.(png|jpg|jpeg|webp)$/i.test(d.fileName));
+        const normalizedPages = isImg ? 1 : (Number(d.totalPages) || (d.pages && d.pages.length ? d.pages.length : 1));
+        return {
+          ...d,
+          _id: stringId,
+          id: stringId,
+          department: d.department || d.departmentName || '',
+          copy_url: cleanUrl,
+          fileUrl: cleanUrl,
+          copyUrl: cleanUrl,
+          totalPages: normalizedPages,
+          universityId: univ.universityId,
+          universityName: univ.name
+        };
       });
-    } catch (_) {}
-
-    return list.map(d => {
-      let tName = d.allocatedTeacherName || (typeof d.allocatedTeacher === 'string' ? d.allocatedTeacher : null);
-      const tEmail = d.allocatedTeacherEmail || d.allocatedTeacherId;
-      if ((!tName || tName === 'None') && tEmail) {
-        tName = teacherMap.get(tEmail.toLowerCase()) || tEmail;
-      }
-      return {
-        ...d,
-        allocatedTeacherName: tName || null,
-        allocatedTeacher: tName || null,
-        allocatedTeacherEmail: tEmail || null,
-        allocatedTeacherId: tEmail || null
-      };
-    });
-  }
-
-  // ==============================================================
-  // 3. Users Collection Operations (Authentication & Profiles)
-  // ==============================================================
-  async getAllUsers() {
-    if (this.isConnected && this.db) {
-      try {
-        const users = await this.db.collection('users').find({}).toArray();
-        return users.map(u => {
-          const { _id, ...rest } = u;
-          return rest;
-        });
-      } catch (e) {
-        console.error('[MongoDB] Fetch users failed:', e.message);
-      }
+    } catch (e) {
+      console.error(`[MongoDB] Fetch students from ${univ.dbName} failed:`, e.message);
+      return [];
     }
-    return this.memoryUsers;
   }
 
-  async findUserByEmail(email) {
+  // ==============================================================
+  // 3. User Authentication & Profile Operations (Scoped to Tenant DB)
+  // ==============================================================
+  async getAllUsers(universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId);
+    if (!univ || !tenantDb) return [];
+    try {
+      const users = await tenantDb.collection('users').find({}).toArray();
+      return users.map(u => {
+        const { _id, ...rest } = u;
+        return { ...rest, universityId: univ.universityId, universityName: univ.name };
+      });
+    } catch (e) {
+      console.error(`[MongoDB] Fetch users from ${univ.dbName} failed:`, e.message);
+      return [];
+    }
+  }
+
+  async findUserByEmail(email, universityId) {
     if (!email) return null;
     const cleanEmail = email.trim().toLowerCase();
-    const users = await this.getAllUsers();
-    return users.find(u => u.email.toLowerCase() === cleanEmail) || null;
+    const { db: tenantDb } = await this.getTenantDb(universityId);
+    if (!tenantDb) return null;
+    try {
+      const user = await tenantDb.collection('users').findOne({ email: cleanEmail });
+      if (user) {
+        const { _id, ...rest } = user;
+        return rest;
+      }
+    } catch (_) {}
+    return null;
   }
 
-  async authenticateUser(email, password) {
+  async authenticateUser(email, password, universityId) {
     if (!email) return { success: false, message: 'Email address is required.' };
     const cleanEmail = email.trim().toLowerCase();
 
-    // Check users collection & teachers collection in MongoDB
-    let user = await this.findUserByEmail(cleanEmail);
-    if (!user) {
-      const teachers = await this.getAllTeachers();
-      user = teachers.find(t => t.email.toLowerCase() === cleanEmail);
+    // 1. Resolve Target University
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId);
+    if (!univ || !tenantDb) {
+      return { success: false, message: 'University not found or database unavailable.' };
+    }
+
+    // 2. Query only inside that university's isolated database
+    let user = null;
+    try {
+      user = await tenantDb.collection('users').findOne({ email: cleanEmail });
+      if (!user) {
+        user = await tenantDb.collection('teachers').findOne({ email: cleanEmail });
+      }
+    } catch (e) {
+      console.warn(`[MongoDB Auth] ${univ.dbName}:`, e.message);
     }
 
     if (!user) {
-      return { success: false, message: 'Account not found in official registry' };
+      return { 
+        success: false, 
+        message: `Account "${cleanEmail}" does not exist in "${univ.name}". Access denied for this university.` 
+      };
     }
+
     if (user.password !== password) {
-      return { success: false, message: 'Invalid password' };
+      return { success: false, message: 'Invalid account password.' };
     }
-    return { success: true, user };
+
+    const { _id, ...cleanUser } = user;
+    return {
+      success: true,
+      user: {
+        ...cleanUser,
+        universityId: univ.universityId,
+        universityName: univ.name,
+        universityCode: univ.code,
+        dbName: univ.dbName
+      }
+    };
   }
 
-  async insertUser(userData) {
+  async insertUser(userData, universityId) {
     if (userData.role === 'teacher') {
-      return this.insertTeacher(userData);
+      return this.insertTeacher(userData, universityId);
     }
 
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId || userData.universityId);
+    if (!univ || !tenantDb) throw new Error('University database unavailable.');
     const cleanEmail = userData.email.trim().toLowerCase();
     const cleanUser = {
       ...userData,
       email: cleanEmail,
+      universityId: univ.universityId,
+      universityName: univ.name,
       createdAt: userData.createdAt || new Date().toISOString()
     };
 
-    if (this.isConnected && this.db) {
-      try {
-        await this.db.collection('users').updateOne(
-          { email: cleanEmail },
-          { $set: cleanUser },
-          { upsert: true }
-        );
-      } catch (e) {
-        console.error('[MongoDB] Insert user failed:', e.message);
-      }
-    }
-
-    const idx = this.memoryUsers.findIndex(u => u.email.toLowerCase() === cleanEmail);
-    if (idx >= 0) {
-      this.memoryUsers[idx] = cleanUser;
-    } else {
-      this.memoryUsers.push(cleanUser);
-    }
-
+    await tenantDb.collection('users').updateOne(
+      { email: cleanEmail },
+      { $set: cleanUser },
+      { upsert: true }
+    );
     return cleanUser;
   }
 
-  async updateUserProfile(email, updates) {
+  async updateUserProfile(email, updates, universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId);
+    if (!univ || !tenantDb) throw new Error('University database unavailable.');
     const cleanEmail = email.trim().toLowerCase();
-    const existing = await this.findUserByEmail(cleanEmail);
+    const existing = await tenantDb.collection('users').findOne({ email: cleanEmail });
     if (!existing) {
-      throw new Error(`User with email ${cleanEmail} not found in database.`);
+      throw new Error(`User with email ${cleanEmail} not found in ${univ.name}.`);
     }
 
     const updatedUser = {
@@ -471,47 +503,40 @@ class MongoDBHandler {
       ...updates,
       updatedAt: new Date().toISOString()
     };
+    delete updatedUser._id;
 
-    if (this.isConnected && this.db) {
-      try {
-        await this.db.collection('users').updateOne(
-          { email: cleanEmail },
-          { $set: updatedUser }
-        );
-        if (updatedUser.role === 'teacher') {
-          await this.db.collection('teachers').updateOne(
-            { email: cleanEmail },
-            { $set: updatedUser }
-          );
-        }
-      } catch (e) {
-        console.error('[MongoDB] Update user profile failed:', e.message);
-      }
-    }
-
-    const idx = this.memoryUsers.findIndex(u => u.email.toLowerCase() === cleanEmail);
-    if (idx >= 0) {
-      this.memoryUsers[idx] = updatedUser;
-    } else {
-      this.memoryUsers.push(updatedUser);
-    }
-
+    await tenantDb.collection('users').updateOne(
+      { email: cleanEmail },
+      { $set: updatedUser }
+    );
     if (updatedUser.role === 'teacher') {
-      const tIdx = this.memoryTeachers.findIndex(t => t.email.toLowerCase() === cleanEmail);
-      if (tIdx >= 0) {
-        this.memoryTeachers[tIdx] = updatedUser;
-      }
+      await tenantDb.collection('teachers').updateOne(
+        { email: cleanEmail },
+        { $set: updatedUser }
+      );
     }
 
     return updatedUser;
   }
 
+  async deleteUser(emailOrId, universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId);
+    if (!univ || !tenantDb) throw new Error('University database unavailable.');
+    const key = (emailOrId || '').trim().toLowerCase();
+
+    await tenantDb.collection('users').deleteOne({
+      $or: [{ email: key }, { id: key }]
+    });
+    return { success: true, key };
+  }
+
   // ==============================================================
-  // 4. Allocation & Evaluation Operations in MongoDB
+  // 4. Allocation & Evaluation Operations (Scoped to Tenant Database)
   // ==============================================================
-  async allocateStudents(studentIds, teacherEmail, teacherName) {
+  async allocateStudents(studentIds, teacherEmail, teacherName, universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId);
+    if (!univ || !tenantDb) throw new Error('University database unavailable.');
     const allocatedDate = new Date().toISOString();
-    const { ObjectId } = require('mongodb');
     const validObjIds = [];
     studentIds.forEach(sid => {
       if (typeof sid === 'string' && ObjectId.isValid(sid) && sid.length === 24) {
@@ -535,35 +560,25 @@ class MongoDBHandler {
       }
     };
 
-    if (this.isConnected && this.db) {
-      try {
-        await this.db.collection('students').updateMany(filter, update);
-      } catch (e) {
-        console.error('[MongoDB] Allocate students failed:', e.message);
-      }
-    }
-
-    this.memoryStudents = this.memoryStudents.map(s => {
-      if (studentIds.includes(s.id) || studentIds.includes(s.enrollment) || (s._id && studentIds.includes(s._id.toString()))) {
-        return {
-          ...s,
-          allocationStatus: 'allocated',
-          allocatedTeacherId: teacherEmail,
-          allocatedTeacherName: teacherName,
-          allocatedDate: allocatedDate
-        };
-      }
-      return s;
-    });
-
+    await tenantDb.collection('students').updateMany(filter, update);
     return {
       success: true,
-      message: `Allocated ${studentIds.length} scripts to ${teacherName} in MongoDB.`
+      message: `Allocated ${studentIds.length} scripts in ${univ.name}.`
     };
   }
 
-  async submitEvaluation(studentId, evaluationData) {
-    const currentStudent = this.memoryStudents.find(s => s.id === studentId || s.enrollment === studentId || (s._id && s._id.toString() === studentId));
+  async submitEvaluation(studentId, evaluationData, universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId);
+    if (!univ || !tenantDb) throw new Error('University database unavailable.');
+
+    let filter = { id: studentId };
+    if (typeof studentId === 'string' && ObjectId.isValid(studentId) && studentId.length === 24) {
+      filter = { $or: [{ id: studentId }, { _id: new ObjectId(studentId) }, { enrollment: studentId }] };
+    } else {
+      filter = { $or: [{ id: studentId }, { enrollment: studentId }] };
+    }
+
+    const currentStudent = await tenantDb.collection('students').findOne(filter);
     const isAdmin = (evaluationData.evaluatorEmail || '').toLowerCase().includes('admin') || 
                     (evaluationData.evaluatorName || '').toLowerCase().includes('admin');
 
@@ -585,47 +600,22 @@ class MongoDBHandler {
       updateSet.assignedTeacher = 'Administrator';
       updateSet.evaluatedByAdmin = true;
       updateSet.checkedByAdmin = true;
-      if (prevTeacherEmail) {
-        updateSet.previousTeacherEmail = prevTeacherEmail;
-      }
-      if (prevTeacherName) {
-        updateSet.previousTeacherName = prevTeacherName;
-      }
+      if (prevTeacherEmail) updateSet.previousTeacherEmail = prevTeacherEmail;
+      if (prevTeacherName) updateSet.previousTeacherName = prevTeacherName;
     }
 
     const update = {
       $set: updateSet,
-      $unset: {
-        revaluation: ""
-      }
+      $unset: { revaluation: "" }
     };
 
-    const { ObjectId } = require('mongodb');
-    let filter = { id: studentId };
-    if (typeof studentId === 'string' && ObjectId.isValid(studentId) && studentId.length === 24) {
-      filter = { $or: [{ id: studentId }, { _id: new ObjectId(studentId) }, { enrollment: studentId }] };
-    } else {
-      filter = { $or: [{ id: studentId }, { enrollment: studentId }] };
-    }
-
-    if (this.isConnected && this.db) {
-      try {
-        await this.db.collection('students').updateOne(filter, update);
-      } catch (e) {
-        console.error('[MongoDB] Submit evaluation failed:', e.message);
-      }
-    }
-
-    const idx = this.memoryStudents.findIndex(s => s.id === studentId || s.enrollment === studentId || (s._id && s._id.toString() === studentId));
-    if (idx >= 0) {
-      delete this.memoryStudents[idx].revaluation;
-      Object.assign(this.memoryStudents[idx], updateSet);
-    }
-
-    return { success: true, message: 'Evaluation marks recorded successfully in MongoDB.' };
+    await tenantDb.collection('students').updateOne(filter, update);
+    return { success: true, message: `Evaluation recorded in ${univ.name}.` };
   }
 
-  async flagRevaluation(studentId, { reason, teacherEmail }) {
+  async flagRevaluation(studentId, { reason, teacherEmail }, universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId);
+    if (!univ || !tenantDb) throw new Error('University database unavailable.');
     const revalData = {
       flaggedAt: new Date().toISOString(),
       flaggedBy: teacherEmail,
@@ -633,7 +623,6 @@ class MongoDBHandler {
       resolved: false
     };
 
-    const { ObjectId } = require('mongodb');
     let filter = { id: studentId };
     if (typeof studentId === 'string' && ObjectId.isValid(studentId) && studentId.length === 24) {
       filter = { $or: [{ id: studentId }, { _id: new ObjectId(studentId) }, { enrollment: studentId }] };
@@ -641,46 +630,33 @@ class MongoDBHandler {
       filter = { $or: [{ id: studentId }, { enrollment: studentId }] };
     }
 
-    if (this.isConnected && this.db) {
-      try {
-        await this.db.collection('students').updateOne(
-          filter,
-          { $set: { status: 'Sent for Revaluation', evaluationStatus: 'revaluation', inRevaluation: true, revaluation: revalData } }
-        );
-      } catch (e) {
-        console.error('[MongoDB] Flag revaluation failed:', e.message);
-      }
-    }
+    await tenantDb.collection('students').updateOne(
+      filter,
+      { $set: { status: 'Sent for Revaluation', evaluationStatus: 'revaluation', inRevaluation: true, revaluation: revalData } }
+    );
 
-    const idx = this.memoryStudents.findIndex(s => s.id === studentId || s.enrollment === studentId || (s._id && s._id.toString() === studentId));
-    if (idx >= 0) {
-      this.memoryStudents[idx].status = 'Sent for Revaluation';
-      this.memoryStudents[idx].evaluationStatus = 'revaluation';
-      this.memoryStudents[idx].inRevaluation = true;
-      this.memoryStudents[idx].revaluation = revalData;
-    }
-
-    return { success: true, message: 'Answer sheet flagged for revaluation in MongoDB.' };
+    return { success: true, message: `Answer sheet escalated for revaluation in ${univ.name}.` };
   }
 
-  async resolveRevaluation(studentId, { action, adminRemarks, newTeacherEmail, newTeacherName }) {
+  async resolveRevaluation(studentId, { action, adminRemarks, newTeacherEmail, newTeacherName }, universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId);
+    if (!univ || !tenantDb) throw new Error('University database unavailable.');
     let teacherName = newTeacherName;
+
     if (!teacherName && newTeacherEmail) {
-      const foundT = this.memoryTeachers?.find(t => t.email === newTeacherEmail);
-      if (foundT) {
-        teacherName = foundT.name;
-      } else if (this.isConnected && this.db) {
-        try {
-          const dbT = await this.db.collection('teachers').findOne({ email: newTeacherEmail });
-          if (dbT) teacherName = dbT.name;
-        } catch (_) {}
-      }
+      const dbT = await tenantDb.collection('teachers').findOne({ email: newTeacherEmail });
+      if (dbT) teacherName = dbT.name;
     }
-    if (!teacherName && newTeacherEmail) {
-      teacherName = newTeacherEmail;
+    if (!teacherName && newTeacherEmail) teacherName = newTeacherEmail;
+
+    let filter = { id: studentId };
+    if (typeof studentId === 'string' && ObjectId.isValid(studentId) && studentId.length === 24) {
+      filter = { $or: [{ id: studentId }, { _id: new ObjectId(studentId) }, { enrollment: studentId }] };
+    } else {
+      filter = { $or: [{ id: studentId }, { enrollment: studentId }] };
     }
 
-    const currentStudent = this.memoryStudents.find(s => s.id === studentId || s.enrollment === studentId || (s._id && s._id.toString() === studentId));
+    const currentStudent = await tenantDb.collection('students').findOne(filter);
     const prevTeacherEmail = currentStudent?.allocatedTeacherEmail || currentStudent?.allocatedTeacherId || (typeof currentStudent?.allocatedTeacher === 'object' ? currentStudent?.allocatedTeacher?.email : null);
     const prevTeacherName = currentStudent?.allocatedTeacherName || (typeof currentStudent?.allocatedTeacher === 'object' ? currentStudent?.allocatedTeacher?.name : currentStudent?.allocatedTeacher);
 
@@ -700,12 +676,8 @@ class MongoDBHandler {
       updateFields.assignedTeacher = teacherName;
       updateFields.allocatedDate = new Date().toISOString();
       updateFields.evaluationStatus = 'pending';
-      if (prevTeacherEmail) {
-        updateFields.previousTeacherEmail = prevTeacherEmail;
-      }
-      if (prevTeacherName) {
-        updateFields.previousTeacherName = prevTeacherName;
-      }
+      if (prevTeacherEmail) updateFields.previousTeacherEmail = prevTeacherEmail;
+      if (prevTeacherName) updateFields.previousTeacherName = prevTeacherName;
     } else {
       updateFields.status = 'Evaluated';
       updateFields.evaluationStatus = 'checked';
@@ -714,61 +686,39 @@ class MongoDBHandler {
       updateFields.assignedTeacher = 'Administrator';
       updateFields.evaluatedByAdmin = true;
       updateFields.checkedByAdmin = true;
-      if (prevTeacherEmail) {
-        updateFields.previousTeacherEmail = prevTeacherEmail;
-      }
-      if (prevTeacherName) {
-        updateFields.previousTeacherName = prevTeacherName;
-      }
+      if (prevTeacherEmail) updateFields.previousTeacherEmail = prevTeacherEmail;
+      if (prevTeacherName) updateFields.previousTeacherName = prevTeacherName;
     }
 
-    const { ObjectId } = require('mongodb');
-    let filter = { id: studentId };
-    if (typeof studentId === 'string' && ObjectId.isValid(studentId) && studentId.length === 24) {
-      filter = { $or: [{ id: studentId }, { _id: new ObjectId(studentId) }, { enrollment: studentId }] };
-    } else {
-      filter = { $or: [{ id: studentId }, { enrollment: studentId }] };
-    }
+    await tenantDb.collection('students').updateOne(filter, { 
+      $set: updateFields,
+      $unset: { revaluation: "" }
+    });
 
-    if (this.isConnected && this.db) {
-      try {
-        await this.db.collection('students').updateOne(filter, { 
-          $set: updateFields,
-          $unset: { revaluation: "" }
-        });
-      } catch (e) {
-        console.error('[MongoDB] Resolve revaluation failed:', e.message);
-      }
-    }
-
-    const idx = this.memoryStudents.findIndex(s => s.id === studentId || s.enrollment === studentId || (s._id && s._id.toString() === studentId));
-    if (idx >= 0) {
-      delete this.memoryStudents[idx].revaluation;
-      Object.assign(this.memoryStudents[idx], updateFields);
-    }
-
-    return { success: true, message: 'Revaluation case resolved in MongoDB.' };
+    return { success: true, message: `Revaluation case resolved in ${univ.name}.` };
   }
 
   // ==============================================================
-  // 5. Answer References Collection Operations in MongoDB
+  // 5. Answer References (Scoped to Tenant Database)
   // ==============================================================
-  async getAllAnswerReferences() {
-    if (this.isConnected && this.db) {
-      try {
-        const refs = await this.db.collection('answer_references').find({}).toArray();
-        return refs.map(r => {
-          const { _id, ...rest } = r;
-          return rest;
-        });
-      } catch (e) {
-        console.error('[MongoDB] Fetch references failed:', e.message);
-      }
+  async getAllReferences(universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId);
+    if (!univ || !tenantDb) return [];
+    try {
+      const refs = await tenantDb.collection('answer_references').find({}).toArray();
+      return refs.map(r => {
+        const { _id, ...rest } = r;
+        return { ...rest, universityId: univ.universityId, universityName: univ.name };
+      });
+    } catch (e) {
+      console.error(`[MongoDB] Fetch references from ${univ.dbName} failed:`, e.message);
+      return [];
     }
-    return this.memoryReferences;
   }
 
-  async insertAnswerReference(refData) {
+  async insertReference(refData, universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId);
+    if (!univ || !tenantDb) throw new Error('University database unavailable.');
     const cleanRef = {
       id: refData.id || `ref_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       subjectCode: refData.subjectCode.trim().toUpperCase(),
@@ -781,122 +731,94 @@ class MongoDBHandler {
       fileUrl: refData.fileUrl || refData.copy_url || null,
       copy_url: refData.copy_url || refData.fileUrl || null,
       cloudinaryPublicId: refData.cloudinaryPublicId || null,
-      description: refData.description || 'Approved marking scheme and rubric.'
+      description: refData.description || 'Approved marking scheme and rubric.',
+      universityId: univ.universityId,
+      universityName: univ.name
     };
 
-    if (this.isConnected && this.db) {
-      try {
-        await this.db.collection('answer_references').updateOne(
-          { subjectCode: cleanRef.subjectCode },
-          { $set: cleanRef },
-          { upsert: true }
-        );
-      } catch (e) {
-        console.error('[MongoDB] Insert answer reference failed:', e.message);
-      }
-    }
-
-    const idx = this.memoryReferences.findIndex(r => r.subjectCode === cleanRef.subjectCode);
-    if (idx >= 0) {
-      this.memoryReferences[idx] = cleanRef;
-    } else {
-      this.memoryReferences.push(cleanRef);
-    }
-
+    await tenantDb.collection('answer_references').updateOne(
+      { subjectCode: cleanRef.subjectCode },
+      { $set: cleanRef },
+      { upsert: true }
+    );
     return cleanRef;
   }
 
-  getAllReferences() {
-    return this.getAllAnswerReferences();
-  }
-
-  insertReference(refData) {
-    return this.insertAnswerReference(refData);
+  async deleteReference(subjectCode, universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId);
+    if (!univ || !tenantDb) throw new Error('University database unavailable.');
+    const cleanCode = (subjectCode || '').trim().toUpperCase();
+    await tenantDb.collection('answer_references').deleteOne({ subjectCode: cleanCode });
+    return { success: true, subjectCode: cleanCode };
   }
 
   // ==============================================================
-  // 6. Subjects Collection Operations in MongoDB
+  // 6. Subjects Collection Operations (Scoped to Tenant Database)
   // ==============================================================
-  async getAllSubjects() {
-    if (this.isConnected && this.db) {
-      try {
-        const list = await this.db.collection('subjects').find({}).toArray();
-        if (list && list.length > 0) {
-          return list.map(s => {
-            const { _id, ...rest } = s;
-            return rest;
-          });
-        }
-      } catch (e) {
-        console.error('[MongoDB] Fetch subjects failed:', e.message);
-      }
+  async getAllSubjects(universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId);
+    if (!univ || !tenantDb) return [];
+    try {
+      const list = await tenantDb.collection('subjects').find({}).toArray();
+      return (list || []).map(s => {
+        const { _id, ...rest } = s;
+        return { ...rest, universityId: univ.universityId, universityName: univ.name };
+      });
+    } catch (e) {
+      console.error(`[MongoDB] Fetch subjects from ${univ.dbName} failed:`, e.message);
+      return [];
     }
-    return this.memorySubjects;
   }
 
-  async insertSubject(subjectData) {
+  async insertSubject(subjectData, universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId);
+    if (!univ || !tenantDb) throw new Error('University database unavailable.');
     const cleanSubject = {
       code: subjectData.code.trim().toUpperCase(),
       title: subjectData.title.trim(),
       department: subjectData.department ? subjectData.department.trim() : 'Academic Department',
+      universityId: univ.universityId,
+      universityName: univ.name,
       createdAt: new Date().toISOString()
     };
 
-    if (this.isConnected && this.db) {
-      try {
-        await this.db.collection('subjects').updateOne(
-          { code: cleanSubject.code },
-          { $set: cleanSubject },
-          { upsert: true }
-        );
-      } catch (e) {
-        console.error('[MongoDB] Insert subject failed:', e.message);
-      }
-    }
-
-    const idx = this.memorySubjects.findIndex(s => s.code === cleanSubject.code);
-    if (idx >= 0) {
-      this.memorySubjects[idx] = cleanSubject;
-    } else {
-      this.memorySubjects.push(cleanSubject);
-    }
+    await tenantDb.collection('subjects').updateOne(
+      { code: cleanSubject.code },
+      { $set: cleanSubject },
+      { upsert: true }
+    );
     return cleanSubject;
   }
 
-  async deleteSubject(subjectCode) {
+  async deleteSubject(subjectCode, universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId);
+    if (!univ || !tenantDb) throw new Error('University database unavailable.');
     const cleanCode = subjectCode.trim().toUpperCase();
-    if (this.isConnected && this.db) {
-      try {
-        await this.db.collection('subjects').deleteOne({ code: cleanCode });
-      } catch (e) {
-        console.error('[MongoDB] Delete subject failed:', e.message);
-      }
-    }
-    this.memorySubjects = this.memorySubjects.filter(s => s.code !== cleanCode);
+    await tenantDb.collection('subjects').deleteOne({ code: cleanCode });
     return { success: true, code: cleanCode };
   }
 
   // ==============================================================
-  // 7. Academic Departments Operations in MongoDB
+  // 7. Academic Departments Operations (Scoped to Tenant Database)
   // ==============================================================
-  async getAllDepartments() {
-    if (this.isConnected && this.db) {
-      try {
-        const list = await this.db.collection('departments').find({}).toArray();
-        if (list && list.length > 0) {
-          return list.map(d => {
-            const { _id, ...rest } = d;
-            return rest;
-          });
-        }
-      } catch (e) {
-        console.error('[MongoDB] Fetch departments failed:', e.message);
-      }
+  async getAllDepartments(universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId);
+    if (!univ || !tenantDb) return [];
+    try {
+      const list = await tenantDb.collection('departments').find({}).toArray();
+      return (list || []).map(d => {
+        const { _id, ...rest } = d;
+        return { ...rest, universityId: univ.universityId, universityName: univ.name };
+      });
+    } catch (e) {
+      console.error(`[MongoDB] Fetch departments from ${univ.dbName} failed:`, e.message);
+      return [];
     }
-    return this.memoryDepartments;
   }
 
-  async insertDepartment(deptData) {
+  async insertDepartment(deptData, universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId);
+    if (!univ || !tenantDb) throw new Error('University database unavailable.');
     const cleanDept = {
       id: deptData.id || `dept_${Date.now()}`,
       code: deptData.code ? deptData.code.trim().toUpperCase() : `DEPT_${Date.now().toString().slice(-4)}`,
@@ -908,45 +830,27 @@ class MongoDBHandler {
       buildingLocation: deptData.buildingLocation ? deptData.buildingLocation.trim() : 'Academic Wing',
       status: deptData.status || 'Active',
       description: deptData.description || null,
+      universityId: univ.universityId,
+      universityName: univ.name,
       createdAt: deptData.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
 
-    if (this.isConnected && this.db) {
-      try {
-        await this.db.collection('departments').updateOne(
-          { code: cleanDept.code },
-          { $set: cleanDept },
-          { upsert: true }
-        );
-      } catch (e) {
-        console.error('[MongoDB] Insert department failed:', e.message);
-      }
-    }
-
-    const idx = this.memoryDepartments.findIndex(d => d.code === cleanDept.code);
-    if (idx >= 0) {
-      this.memoryDepartments[idx] = cleanDept;
-    } else {
-      this.memoryDepartments.push(cleanDept);
-    }
+    await tenantDb.collection('departments').updateOne(
+      { code: cleanDept.code },
+      { $set: cleanDept },
+      { upsert: true }
+    );
     return cleanDept;
   }
 
-  async deleteDepartment(deptCodeOrName) {
+  async deleteDepartment(deptCodeOrName, universityId) {
+    const { db: tenantDb, univ } = await this.getTenantDb(universityId);
+    if (!univ || !tenantDb) throw new Error('University database unavailable.');
     const key = (deptCodeOrName || '').trim();
-    if (this.isConnected && this.db) {
-      try {
-        await this.db.collection('departments').deleteOne({
-          $or: [{ code: key.toUpperCase() }, { name: key }, { id: key }]
-        });
-      } catch (e) {
-        console.error('[MongoDB] Delete department failed:', e.message);
-      }
-    }
-    this.memoryDepartments = this.memoryDepartments.filter(
-      d => d.code !== key.toUpperCase() && d.name !== key && d.id !== key
-    );
+    await tenantDb.collection('departments').deleteOne({
+      $or: [{ code: key.toUpperCase() }, { name: key }, { id: key }]
+    });
     return { success: true, key };
   }
 }

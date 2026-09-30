@@ -1,16 +1,14 @@
-import React from 'react';
-import { ShieldCheck, User, LogOut, CheckCircle2, Cloud, Search, Repeat, Sparkles, Sun, Moon } from 'lucide-react';
-
+import { ShieldCheck, User, LogOut, CheckCircle2, Cloud, Search, Repeat, Sparkles, Sun, Moon, Landmark } from 'lucide-react';
+import { MessageCircleDashedCheck } from 'lucide-react';
 export default function Navbar({ currentUser, onLogout, onOpenProfile, serverStatus, themeMode = 'dark', onToggleTheme }) {
   return (
     <header className="app-header">
       <div className="header-brand">
         <div className="header-logo-icon">
-          MP
+          <MessageCircleDashedCheck />
         </div>
         <div className="header-title-wrap">
-          <h1 className="header-title-text">MPOnline Evaluation Portal</h1>
-          <p className="header-subtitle-text">State Board of Technical & Higher Education, MP</p>
+          <h1 className="header-title-text">Digital On-Screen Marking Portal</h1>
         </div>
       </div>
 
@@ -40,6 +38,28 @@ export default function Navbar({ currentUser, onLogout, onOpenProfile, serverSta
 
         {currentUser && (
           <>
+            {(currentUser.universityName || currentUser.universityCode) && (
+              <div 
+                className="server-status-pill" 
+                style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '6px', 
+                  fontSize: '11.5px', 
+                  fontWeight: 700, 
+                  padding: '4px 10px', 
+                  borderRadius: '8px', 
+                  whiteSpace: 'nowrap',
+                  background: 'rgba(245, 158, 11, 0.15)',
+                  border: '1px solid rgba(245, 158, 11, 0.4)',
+                  color: 'var(--text-main)'
+                }}
+                title={`Connected to isolated database for ${currentUser.universityName || currentUser.universityCode}`}
+              >
+                <Landmark size={13} color="#f59e0b" />
+                <span>{currentUser.universityCode || currentUser.universityName}</span>
+              </div>
+            )}
             <div className="user-badge" style={{ whiteSpace: 'nowrap' }}>
               <span className="user-badge-name" style={{ fontSize: '12.5px' }}>{currentUser.name}</span>
               <span className="user-badge-role" style={{ fontSize: '9.5px' }}>

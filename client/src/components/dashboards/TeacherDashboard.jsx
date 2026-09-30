@@ -10,11 +10,12 @@ import {
   RotateCcw,
   BookOpen
 } from 'lucide-react';
-import { sendToRevaluation } from '../../api';
+import { sendToRevaluation, formatDeptSubject } from '../../api';
 
 export default function TeacherDashboard({ 
   currentUser, 
   students, 
+  subjects = [],
   onRefresh, 
   onViewDocument, 
   onStartEvaluation, 
@@ -115,6 +116,14 @@ export default function TeacherDashboard({
     } finally {
       setIsSubmittingReval(false);
     }
+  };
+
+  // Mask last 4 digits of enrollment as "XXXX" for blind teacher scrutiny
+  const maskEnrollment = (val) => {
+    if (!val) return 'XXXX';
+    const str = String(val).trim();
+    if (str.length <= 4) return 'XXXX';
+    return str.slice(0, -4) + 'XXXX';
   };
 
   // Helper to accurately resolve page count of answer script
@@ -242,8 +251,7 @@ export default function TeacherDashboard({
               <thead>
                 <tr>
                   <th>Roll / Enrollment</th>
-                  <th>Candidate Name</th>
-                  <th>Subject</th>
+                  <th>Department : Subject</th>
                   <th>Status</th>
                   <th>Awarded Marks</th>
                   <th style={{ textAlign: 'right' }}>Evaluation Actions</th>
@@ -252,7 +260,7 @@ export default function TeacherDashboard({
               <tbody>
                 {filteredList.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-muted)' }}>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-muted)' }}>
                       {myStudents.length === 0 
                         ? 'No answer scripts have been allocated to your account yet.' 
                         : 'No candidate copies match the selected filter.'}
@@ -261,10 +269,9 @@ export default function TeacherDashboard({
                 ) : (
                   filteredList.map((st) => (
                     <tr key={st._id || st.id}>
-                      <td style={{ fontWeight: 'bold', fontFamily: 'monospace' }}>{st.enrollmentNumber}</td>
-                      <td>{st.name}</td>
+                      <td style={{ fontWeight: 'bold', fontFamily: 'monospace' }}>{maskEnrollment(st.enrollmentNumber || st.enrollment)}</td>
                       <td>
-                        <span className="badge badge-neutral">{st.subject}</span>
+                        <span className="badge badge-neutral">{formatDeptSubject(st, subjects)}</span>
                       </td>
                       <td>
                         {st.status === 'Evaluated' ? (
@@ -295,10 +302,10 @@ export default function TeacherDashboard({
                           {st.copyUrl && (
                             <button
                               className="btn btn-outline btn-sm"
-                              onClick={() => onViewDocument(st.copyUrl, `Copy: ${st.name || st.studentName} (${st.enrollmentNumber || st.enrollment})`, { ...st, totalPages: getPageCount(st) })}
+                              onClick={() => onViewDocument(st.copyUrl, `Candidate Copy: ${maskEnrollment(st.enrollmentNumber || st.enrollment)}`, { ...st, totalPages: getPageCount(st) })}
                               title="Inspect Script"
                             >
-                              <Eye size={13} /> Preview ({getPageCount(st)}P)
+                              <Eye size={13} /> Inspect
                             </button>
                           )}
 

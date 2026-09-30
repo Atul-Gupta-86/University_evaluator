@@ -6,7 +6,7 @@ const cloudinary = require('cloudinary').v2;
 const nodemailer = require('nodemailer');
 const mongodbHandler = require('./mongodb-client');
 
-const PORT = 5173;
+const PORT = process.env.PORT || 3000;
 const REACT_DIST = path.join(__dirname, 'client', 'dist');
 
 // ==============================================================
@@ -144,7 +144,7 @@ function sendJSON(res, statusCode, data) {
     'Content-Type': 'application/json; charset=UTF-8',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
+    'Access-Control-Allow-Headers': 'Content-Type, X-University-Id'
   });
   res.end(JSON.stringify(data));
 }
@@ -193,19 +193,56 @@ function extractCleanUrl(val) {
   return null;
 }
 
+// Multi-Tenant University Extractor
+function getRequestUniversityId(req, urlParams = null, body = null) {
+  return (
+    req.headers['x-university-id'] ||
+    (urlParams && urlParams.get('universityId')) ||
+    (body && body.universityId) ||
+    null
+  );
+}
+
 const server = http.createServer(async (req, res) => {
   const urlParts = req.url.split('?');
   const reqPath = urlParts[0];
+  const queryParams = urlParts[1] ? new URLSearchParams(urlParts[1]) : null;
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
+      'Access-Control-Allow-Headers': 'Content-Type, X-University-Id'
     });
     res.end();
     return;
+  }
+
+  // ==============================================================
+  // Multi-Tenant Universities Central Endpoints
+  // ==============================================================
+
+  // GET /api/universities - Fetch all registered universities
+  if (reqPath === '/api/universities' && req.method === 'GET') {
+    try {
+      const universities = await mongodbHandler.getAllUniversities();
+      return sendJSON(res, 200, { success: true, universities });
+    } catch (e) {
+      return sendJSON(res, 500, { success: false, error: e.message });
+    }
+  }
+
+  // POST /api/universities/register - Only universities can register!
+  // Creates dedicated isolated tenant database on the MongoDB Atlas cluster
+  if (reqPath === '/api/universities/register' && req.method === 'POST') {
+    try {
+      const data = await parseJSONBody(req);
+      const result = await mongodbHandler.registerUniversity(data);
+      return sendJSON(res, 201, result);
+    } catch (e) {
+      return sendJSON(res, 400, { success: false, error: e.message });
+    }
   }
 
   // ==============================================================
@@ -214,11 +251,15 @@ const server = http.createServer(async (req, res) => {
 
   // GET /api/status - MongoDB connection status & health
   if (reqPath === '/api/status' && req.method === 'GET') {
+    const universityId = getRequestUniversityId(req, queryParams);
     const status = mongodbHandler.getStatus();
-    const students = await mongodbHandler.getAllStudents();
-    const users = await mongodbHandler.getAllUsers();
+    const students = await mongodbHandler.getAllStudents(universityId);
+    const users = await mongodbHandler.getAllUsers(universityId);
+    const universities = await mongodbHandler.getAllUniversities();
     return sendJSON(res, 200, {
       ...status,
+      activeUniversityId: universityId || (universities[0] ? universities[0].universityId : null),
+      totalUniversitiesRegistered: universities.length,
       totalStudentsStored: students.length,
       totalUsersStored: users.length,
       cloudinaryConfigured: isCloudinaryConfigured(),
@@ -267,7 +308,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-// POST /api/upload - Upload scanned copy strictly to Cloudinary and return copy_url
+  // POST /api/upload - Upload scanned copy strictly to Cloudinary and return copy_url
   if (reqPath === '/api/upload' && req.method === 'POST') {
     try {
       const { fileData, fileName, enrollment, subjectCode } = await parseJSONBody(req);
@@ -290,12 +331,12 @@ const server = http.createServer(async (req, res) => {
       const uploadResult = await cloudinary.uploader.upload(fileData, {
         folder: 'mponline_evaluation_portal/scanned_copies',
         resource_type: 'auto',
-        public_id: `${cleanEnroll}_${cleanSubject}_${Date.now()}`
+        public_id: `${cleanEnroll}_${cleanSubject}_${Date.now()}`,
+        pages: true,
+        image_metadata: true
       });
 
       const isPdf = uploadResult.format === 'pdf' || uploadResult.secure_url.toLowerCase().endsWith('.pdf');
-      // For PDFs, Cloudinary blocks direct raw .pdf delivery with ACL 401 error.
-      // Converting to .jpg delivers high-resolution rendered pages with HTTP 200.
       const deliverableUrl = isPdf ? uploadResult.secure_url.replace(/\.pdf(\?.*)?$/i, '.jpg$1') : uploadResult.secure_url;
       const totalPages = uploadResult.pages || (isPdf ? 1 : 1);
 
@@ -324,7 +365,7 @@ const server = http.createServer(async (req, res) => {
   // GET /api/documents/signed - Generates a signed private download URL for original PDFs (bypasses ACL restriction)
   if (reqPath === '/api/documents/signed' && req.method === 'GET') {
     try {
-      const publicId = urlParts[1] ? new URLSearchParams(urlParts[1]).get('publicId') : null;
+      const publicId = queryParams ? queryParams.get('publicId') : null;
       if (!publicId) return sendJSON(res, 400, { success: false, error: 'publicId query parameter required' });
       const signedUrl = cloudinary.utils.private_download_url(publicId, 'pdf', {
         resource_type: 'image',
@@ -341,9 +382,8 @@ const server = http.createServer(async (req, res) => {
   // GET /api/documents/page-count - Dynamically fetches the exact page count from Cloudinary resource metadata
   if (reqPath === '/api/documents/page-count' && req.method === 'GET') {
     try {
-      const queryParams = new URLSearchParams(urlParts[1] || '');
-      const docUrl = queryParams.get('url') || '';
-      let publicId = queryParams.get('publicId') || '';
+      const docUrl = queryParams ? (queryParams.get('url') || '') : '';
+      let publicId = queryParams ? (queryParams.get('publicId') || '') : '';
 
       if (!publicId && docUrl && docUrl.includes('cloudinary')) {
         const match = docUrl.match(/mponline_evaluation_portal\/[^\.\?]+/);
@@ -356,24 +396,6 @@ const server = http.createServer(async (req, res) => {
         try {
           const resResource = await cloudinary.api.resource(publicId, { pages: true, image_metadata: true });
           const pages = resResource.pages || 1;
-
-          // Cache page count in student records in MongoDB & memory
-          const studentIdx = mongodbHandler.memoryStudents.findIndex(s => {
-            const u = s.copyUrl || s.copy_url || s.fileUrl || '';
-            return u.includes(publicId);
-          });
-          if (studentIdx >= 0) {
-            mongodbHandler.memoryStudents[studentIdx].totalPages = pages;
-            if (mongodbHandler.isConnected && mongodbHandler.db) {
-              try {
-                await mongodbHandler.db.collection('students').updateOne(
-                  { _id: mongodbHandler.memoryStudents[studentIdx]._id },
-                  { $set: { totalPages: pages } }
-                );
-              } catch (_) {}
-            }
-          }
-
           return sendJSON(res, 200, {
             success: true,
             totalPages: pages,
@@ -385,39 +407,32 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      // Fallback: Check if matching student in database has totalPages
-      if (docUrl) {
-        const found = mongodbHandler.memoryStudents.find(s => (s.copyUrl || s.copy_url || s.fileUrl) === docUrl);
-        if (found && found.totalPages && Number(found.totalPages) > 0) {
-          return sendJSON(res, 200, { success: true, totalPages: Number(found.totalPages) });
-        }
-      }
-
       return sendJSON(res, 200, { success: true, totalPages: 1 });
     } catch (e) {
       return sendJSON(res, 500, { success: false, error: e.message });
     }
   }
 
-  // GET /api/teachers - Fetch all teachers from separate teachers schema in MongoDB
+  // GET /api/teachers - Fetch teachers from isolated tenant database
   if (reqPath === '/api/teachers' && req.method === 'GET') {
     try {
-      const teachers = await mongodbHandler.getAllTeachers();
+      const universityId = getRequestUniversityId(req, queryParams);
+      const teachers = await mongodbHandler.getAllTeachers(universityId);
       return sendJSON(res, 200, { success: true, teachers });
     } catch (e) {
       return sendJSON(res, 500, { success: false, error: e.message });
     }
   }
 
-  // POST /api/teachers/add - Admin directly saves teacher data in separate teachers schema
+  // POST /api/teachers/add - Add teacher to isolated tenant database
   if (reqPath === '/api/teachers/add' && req.method === 'POST') {
     try {
       const teacherData = await parseJSONBody(req);
       if (!teacherData.email || !teacherData.name) {
         return sendJSON(res, 400, { success: false, error: 'Teacher name and email are required.' });
       }
-      const savedTeacher = await mongodbHandler.insertTeacher(teacherData);
-      console.log(`[API] Saved new teacher ${savedTeacher.name} directly to separate teachers schema.`);
+      const universityId = getRequestUniversityId(req, queryParams, teacherData);
+      const savedTeacher = await mongodbHandler.insertTeacher(teacherData, universityId);
       return sendJSON(res, 201, { success: true, teacher: savedTeacher });
     } catch (e) {
       console.error('[API Teacher Add Error]', e);
@@ -425,42 +440,34 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // POST /api/teachers/remove - Delete teacher from teachers and users collections in MongoDB
+  // POST /api/teachers/remove - Delete teacher from isolated tenant database
   if ((reqPath === '/api/teachers/remove' || reqPath === '/api/teachers/delete') && req.method === 'POST') {
     try {
-      const { email, id } = await parseJSONBody(req);
-      const target = (email || id || '').trim();
+      const body = await parseJSONBody(req);
+      const target = (body.email || body.id || '').trim();
       if (!target) {
         return sendJSON(res, 400, { success: false, error: 'Teacher email or ID is required.' });
       }
-      const result = await mongodbHandler.deleteTeacher(target);
-      console.log(`[API] Removed teacher ${target} from MongoDB.`);
+      const universityId = getRequestUniversityId(req, queryParams, body);
+      const result = await mongodbHandler.deleteTeacher(target, universityId);
       return sendJSON(res, 200, result);
     } catch (e) {
       return sendJSON(res, 500, { success: false, error: e.message });
     }
   }
 
-  // GET /api/users - Fetch registered users from MongoDB
-  if (reqPath === '/api/users' && req.method === 'GET') {
-    try {
-      const users = await mongodbHandler.getAllUsers();
-      return sendJSON(res, 200, { success: true, users });
-    } catch (e) {
-      return sendJSON(res, 500, { success: false, error: e.message });
-    }
-  }
 
-  // POST /api/auth/login-request - Step 1 of 2FA: Verify credentials and dispatch real OTP
+  // POST /api/auth/login-request - Step 1 of 2FA: Verify credentials inside tenant DB and dispatch OTP
   if (reqPath === '/api/auth/login-request' && req.method === 'POST') {
     try {
-      const { email, password } = await parseJSONBody(req);
+      const { email, password, universityId: bodyUnivId } = await parseJSONBody(req);
       if (!email || !password) {
         return sendJSON(res, 400, { success: false, error: 'Email and password are required.' });
       }
 
+      const universityId = bodyUnivId || req.headers['x-university-id'] || null;
       const cleanEmail = email.trim().toLowerCase();
-      const authResult = await mongodbHandler.authenticateUser(cleanEmail, password);
+      const authResult = await mongodbHandler.authenticateUser(cleanEmail, password, universityId);
 
       if (!authResult.success) {
         return sendJSON(res, 401, { success: false, error: authResult.message || 'Invalid email or password.' });
@@ -485,6 +492,9 @@ const server = http.createServer(async (req, res) => {
         email: cleanEmail,
         userName: authResult.user.name,
         userRole: authResult.user.role,
+        universityId: authResult.user.universityId,
+        universityName: authResult.user.universityName,
+        universityCode: authResult.user.universityCode,
         emailSent,
         message: emailSent
           ? `A 6-digit verification code has been dispatched to your email (${cleanEmail}).`
@@ -521,9 +531,8 @@ const server = http.createServer(async (req, res) => {
         return sendJSON(res, 400, { success: false, error: 'Invalid verification code. Please check your email and try again.' });
       }
 
-      // Valid OTP! Clear login OTP store and finalize login
       loginOtpStore.delete(cleanEmail);
-      console.log(`[2FA SUCCESS] User ${record.user.name} (${cleanEmail}) authenticated successfully via OTP.`);
+      console.log(`[2FA SUCCESS] User ${record.user.name} authenticated into "${record.user.universityName}".`);
 
       return sendJSON(res, 200, {
         success: true,
@@ -536,11 +545,12 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // POST /api/auth/login - Direct authentication fallback
+  // POST /api/auth/login - Direct authentication fallback (passes universityId)
   if (reqPath === '/api/auth/login' && req.method === 'POST') {
     try {
-      const { email, password } = await parseJSONBody(req);
-      const result = await mongodbHandler.authenticateUser(email, password);
+      const { email, password, universityId: bodyUnivId } = await parseJSONBody(req);
+      const universityId = bodyUnivId || req.headers['x-university-id'] || null;
+      const result = await mongodbHandler.authenticateUser(email, password, universityId);
       if (result.success) {
         return sendJSON(res, 200, result);
       } else {
@@ -551,131 +561,173 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // POST /api/users/add - Store new user/teacher in MongoDB users collection
+  // GET /api/users - Fetch users from tenant DB (optionally filter by role)
+  if (reqPath === '/api/users' && req.method === 'GET') {
+    try {
+      const universityId = getRequestUniversityId(req, queryParams);
+      const roleFilter = queryParams?.get('role');
+      let users = await mongodbHandler.getAllUsers(universityId);
+      if (roleFilter) {
+        users = users.filter(u => (u.role || '').toLowerCase() === roleFilter.trim().toLowerCase());
+      }
+      return sendJSON(res, 200, { success: true, users });
+    } catch (e) {
+      return sendJSON(res, 500, { success: false, error: e.message });
+    }
+  }
+
+  // POST /api/users/add - Store new user in tenant DB
   if (reqPath === '/api/users/add' && req.method === 'POST') {
     try {
       const userData = await parseJSONBody(req);
       if (!userData.email || !userData.password) {
-        return sendJSON(res, 400, { success: false, error: 'Email and password are required.' });
+        return sendJSON(res, 400, { success: false, error: 'Email and password are mandatory fields.' });
       }
-      const savedUser = await mongodbHandler.insertUser(userData);
-      console.log(`[API] Added evaluator/teacher ${savedUser.name} (${savedUser.email}) to MongoDB database.`);
+      const universityId = getRequestUniversityId(req, queryParams, userData);
+      const cleanData = {
+        ...userData,
+        email: userData.email.trim().toLowerCase(),
+        password: userData.password,
+        role: userData.role || 'user',
+        name: (userData.name || '').trim(),
+        department: (userData.department || '').trim()
+      };
+      const savedUser = await mongodbHandler.insertUser(cleanData, universityId);
       return sendJSON(res, 201, { success: true, user: savedUser });
     } catch (e) {
       return sendJSON(res, 500, { success: false, error: e.message });
     }
   }
 
-  // GET /api/subjects - Fetch list of university subjects
+  // POST /api/users/remove - Remove user from tenant DB
+  if (reqPath === '/api/users/remove' && req.method === 'POST') {
+    try {
+      const body = await parseJSONBody(req);
+      const target = body.email || body.id;
+      if (!target) {
+        return sendJSON(res, 400, { success: false, error: 'User email or ID is required.' });
+      }
+      const universityId = getRequestUniversityId(req, queryParams, body);
+      const result = await mongodbHandler.deleteUser(target, universityId);
+      return sendJSON(res, 200, result);
+    } catch (e) {
+      return sendJSON(res, 500, { success: false, error: e.message });
+    }
+  }
+
+  // GET /api/subjects - Fetch list of university subjects from tenant DB
   if (reqPath === '/api/subjects' && req.method === 'GET') {
     try {
-      const subjects = await mongodbHandler.getAllSubjects();
+      const universityId = getRequestUniversityId(req, queryParams);
+      const subjects = await mongodbHandler.getAllSubjects(universityId);
       return sendJSON(res, 200, { success: true, subjects });
     } catch (e) {
       return sendJSON(res, 500, { success: false, error: e.message });
     }
   }
 
-  // POST /api/subjects/add - Add new subject to university catalog
+  // POST /api/subjects/add - Add new subject to tenant DB
   if (reqPath === '/api/subjects/add' && req.method === 'POST') {
     try {
-      const { code, title, department } = await parseJSONBody(req);
+      const body = await parseJSONBody(req);
+      const { code, title, department } = body;
       if (!code || !title) {
         return sendJSON(res, 400, { success: false, error: 'Subject code and title are required.' });
       }
-      const saved = await mongodbHandler.insertSubject({ code, title, department });
-      console.log(`[API] Added subject ${saved.code}: ${saved.title} to database.`);
+      const universityId = getRequestUniversityId(req, queryParams, body);
+      const saved = await mongodbHandler.insertSubject({ code, title, department }, universityId);
       return sendJSON(res, 201, { success: true, subject: saved });
     } catch (e) {
       return sendJSON(res, 500, { success: false, error: e.message });
     }
   }
 
-  // POST /api/subjects/remove - Remove subject from university catalog
+  // POST /api/subjects/remove - Remove subject from tenant DB
   if (reqPath === '/api/subjects/remove' && req.method === 'POST') {
     try {
-      const { code } = await parseJSONBody(req);
+      const body = await parseJSONBody(req);
+      const { code } = body;
       if (!code) {
         return sendJSON(res, 400, { success: false, error: 'Subject code is required.' });
       }
-      const result = await mongodbHandler.deleteSubject(code);
-      console.log(`[API] Removed subject ${code} from database.`);
+      const universityId = getRequestUniversityId(req, queryParams, body);
+      const result = await mongodbHandler.deleteSubject(code, universityId);
       return sendJSON(res, 200, result);
     } catch (e) {
       return sendJSON(res, 500, { success: false, error: e.message });
     }
   }
 
-  // GET /api/departments - Fetch academic departments
+  // GET /api/departments - Fetch academic departments from tenant DB
   if (reqPath === '/api/departments' && req.method === 'GET') {
     try {
-      const departments = await mongodbHandler.getAllDepartments();
+      const universityId = getRequestUniversityId(req, queryParams);
+      const departments = await mongodbHandler.getAllDepartments(universityId);
       return sendJSON(res, 200, { success: true, departments });
     } catch (e) {
       return sendJSON(res, 500, { success: false, error: e.message });
     }
   }
 
-  // POST /api/departments/add - Add new academic department
+  // POST /api/departments/add - Add new academic department in tenant DB
   if (reqPath === '/api/departments/add' && req.method === 'POST') {
     try {
-      const { name, code, head, email } = await parseJSONBody(req);
+      const body = await parseJSONBody(req);
+      const { name, code, head, email } = body;
       if (!name || !code) {
         return sendJSON(res, 400, { 
           success: false, 
           error: 'Department Code and Name are mandatory.' 
         });
       }
+      const universityId = getRequestUniversityId(req, queryParams, body);
       const saved = await mongodbHandler.insertDepartment({ 
         name: name.trim(), 
         code: code.trim().toUpperCase(), 
         head: (head || '').trim(), 
         email: (email || '').trim().toLowerCase() 
-      });
-      console.log(`[API] Added department ${saved.code}: ${saved.name} to MongoDB.`);
+      }, universityId);
       return sendJSON(res, 201, { success: true, department: saved });
     } catch (e) {
       return sendJSON(res, 500, { success: false, error: e.message });
     }
   }
 
-  // POST /api/departments/remove - Delete academic department
+  // POST /api/departments/remove - Delete academic department from tenant DB
   if (reqPath === '/api/departments/remove' && req.method === 'POST') {
     try {
-      const { code, name, id } = await parseJSONBody(req);
+      const body = await parseJSONBody(req);
+      const { code, name, id } = body;
       const target = code || name || id;
       if (!target) {
         return sendJSON(res, 400, { success: false, error: 'Department code or name is required.' });
       }
-      const result = await mongodbHandler.deleteDepartment(target);
-      console.log(`[API] Removed department ${target} from MongoDB.`);
+      const universityId = getRequestUniversityId(req, queryParams, body);
+      const result = await mongodbHandler.deleteDepartment(target, universityId);
       return sendJSON(res, 200, result);
     } catch (e) {
       return sendJSON(res, 500, { success: false, error: e.message });
     }
   }
 
-  // ==============================================================
-  // OTP Verification for Profile & Password Changes
-  // ==============================================================
-
   // POST /api/auth/otp/send - Generate and dispatch OTP to user email
   if (reqPath === '/api/auth/otp/send' && req.method === 'POST') {
     try {
-      const { email } = await parseJSONBody(req);
+      const body = await parseJSONBody(req);
+      const { email } = body;
       if (!email) {
         return sendJSON(res, 400, { success: false, error: 'Email is required.' });
       }
 
+      const universityId = getRequestUniversityId(req, queryParams, body);
       const cleanEmail = email.trim().toLowerCase();
-      const user = await mongodbHandler.findUserByEmail(cleanEmail);
+      const user = await mongodbHandler.findUserByEmail(cleanEmail, universityId);
       if (!user) {
         return sendJSON(res, 404, { success: false, error: 'User account not found.' });
       }
 
-      // Generate secure 6-digit OTP
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes validity
+      const expiresAt = Date.now() + 10 * 60 * 1000;
       otpStore.set(cleanEmail, { otp, expiresAt });
 
       const { emailSent, deliveryDetails } = await sendOtpEmail(cleanEmail, user.name, otp, 'Profile & Security Change');
@@ -693,10 +745,11 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // POST /api/auth/otp/verify-and-update - Verify OTP and update profile/password in MongoDB
+  // POST /api/auth/otp/verify-and-update - Verify OTP and update profile/password in tenant DB
   if (reqPath === '/api/auth/otp/verify-and-update' && req.method === 'POST') {
     try {
-      const { email, otp, updates } = await parseJSONBody(req);
+      const body = await parseJSONBody(req);
+      const { email, otp, updates } = body;
       if (!email || !otp || !updates) {
         return sendJSON(res, 400, { success: false, error: 'Email, OTP, and updates object are required.' });
       }
@@ -718,13 +771,10 @@ const server = http.createServer(async (req, res) => {
         return sendJSON(res, 400, { success: false, error: 'Invalid OTP code. Please enter the correct 6-digit code.' });
       }
 
-      // OTP matches! Consume OTP
       otpStore.delete(cleanEmail);
+      const universityId = getRequestUniversityId(req, queryParams, body);
+      const updatedUser = await mongodbHandler.updateUserProfile(cleanEmail, updates, universityId);
 
-      // Update user in MongoDB users collection
-      const updatedUser = await mongodbHandler.updateUserProfile(cleanEmail, updates);
-
-      console.log(`[OTP SERVICE] Verified OTP successfully. Profile updated for ${cleanEmail}.`);
       return sendJSON(res, 200, {
         success: true,
         message: 'Profile and credentials updated successfully in MongoDB.',
@@ -736,24 +786,37 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ==============================================================
-  // Students & Evaluation Endpoints
+  // Students & Evaluation Endpoints (Scoped to Tenant Database)
   // ==============================================================
 
-  // GET /api/students - Fetch all stored students from MongoDB
+  // GET /api/students - Fetch stored students from tenant DB
   if (reqPath === '/api/students' && req.method === 'GET') {
     try {
-      const students = await mongodbHandler.getAllStudents();
-      // Ensure totalPages is accurately reflected from Cloudinary / document metadata
+      const universityId = getRequestUniversityId(req, queryParams);
+      const students = await mongodbHandler.getAllStudents(universityId);
+
+      // Dynamically resolve and guarantee department for all students
+      const subjects = await mongodbHandler.getAllSubjects(universityId);
+      const subjectDeptMap = new Map();
+      for (const sub of subjects) {
+        if (sub.department) {
+          if (sub.code) subjectDeptMap.set(sub.code.trim().toUpperCase(), sub.department);
+          if (sub.title) subjectDeptMap.set(sub.title.trim().toUpperCase(), sub.department);
+        }
+      }
+
       for (const s of students) {
-        if (!s.totalPages || Number(s.totalPages) <= 1) {
-          const u = (s.copyUrl || s.copy_url || s.fileUrl || '').toUpperCase();
-          if (u.includes('WFWEA')) s.totalPages = 12;
-          else if (u.includes('GEF')) s.totalPages = 6;
-          else if (u.includes('FDG')) s.totalPages = 4;
-          else if (u.includes('SDWEA')) s.totalPages = 10;
-          else if (u.includes('DVCSFD')) s.totalPages = 4;
-          else if (u.includes('SDAS')) s.totalPages = 10;
-          else if (s.pages && Array.isArray(s.pages) && s.pages.length > 1) s.totalPages = s.pages.length;
+        if (!s.department || !s.department.trim()) {
+          const codeKey = (s.subjectCode || '').trim().toUpperCase();
+          const titleKey = (s.subjectTitle || s.subject || '').trim().toUpperCase();
+          s.department = subjectDeptMap.get(codeKey) || subjectDeptMap.get(titleKey) || 'Academic';
+        }
+        if (!s.totalPages || Number(s.totalPages) <= 0) {
+          if (s.pages && Array.isArray(s.pages) && s.pages.length > 0) {
+            s.totalPages = s.pages.length;
+          } else {
+            s.totalPages = 1;
+          }
         }
       }
       return sendJSON(res, 200, { success: true, students });
@@ -762,7 +825,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // POST /api/students/upload - Store student data in MongoDB when university uploads
+  // POST /api/students/upload - Store student data in tenant DB
   if (reqPath === '/api/students/upload' && req.method === 'POST') {
     try {
       const payload = await parseJSONBody(req);
@@ -770,6 +833,7 @@ const server = http.createServer(async (req, res) => {
         return sendJSON(res, 400, { success: false, error: 'Enrollment and Subject Code are required.' });
       }
 
+      const universityId = getRequestUniversityId(req, queryParams, payload);
       const cleanEnroll = payload.enrollment.trim().toUpperCase();
       const rawUrl = payload.copy_url || payload.fileUrl || payload.copyUrl || payload.url || payload.secure_url || null;
       const finalCopyUrl = extractCleanUrl(rawUrl);
@@ -794,10 +858,20 @@ const server = http.createServer(async (req, res) => {
       }
       resolvedPages = resolvedPages || 1;
 
+      let dept = payload.department ? payload.department.trim() : null;
+      if (!dept && payload.subjectCode) {
+        const subjects = await mongodbHandler.getAllSubjects(universityId);
+        const codeUpper = payload.subjectCode.trim().toUpperCase();
+        const match = subjects.find(sub => (sub.code && sub.code.trim().toUpperCase() === codeUpper) || (sub.title && sub.title.trim() === payload.subjectTitle));
+        if (match && match.department) dept = match.department;
+      }
+      dept = dept || 'Academic';
+
       const newStudent = {
         id: payload.id || `std_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
         enrollment: cleanEnroll,
         studentName: payload.studentName ? payload.studentName.trim() : 'Candidate',
+        department: dept,
         subjectCode: payload.subjectCode.trim(),
         subjectTitle: payload.subjectTitle ? payload.subjectTitle.trim() : 'Examination Script',
         academicYear: payload.academicYear || '2025-2026',
@@ -826,63 +900,71 @@ const server = http.createServer(async (req, res) => {
         revaluation: payload.revaluation || null
       };
 
-      const saved = await mongodbHandler.insertStudent(newStudent);
-      console.log(`[API] Saved student ${cleanEnroll} with copy_url: ${finalCopyUrl} to MongoDB database.`);
+      const saved = await mongodbHandler.insertStudent(newStudent, universityId);
+      console.log(`[API] Saved student ${cleanEnroll} in university database "${saved.universityName || universityId}".`);
       return sendJSON(res, 201, { success: true, student: saved });
     } catch (e) {
       return sendJSON(res, 500, { success: false, error: e.message });
     }
   }
 
-  // POST /api/students/allocate - Allocate students to teacher in MongoDB
+  // POST /api/students/allocate - Allocate students to teacher in tenant DB
   if (reqPath === '/api/students/allocate' && req.method === 'POST') {
     try {
-      const { studentIds, teacherEmail, teacherName } = await parseJSONBody(req);
+      const body = await parseJSONBody(req);
+      const { studentIds, teacherEmail, teacherName } = body;
       if (!studentIds || !studentIds.length || !teacherEmail) {
         return sendJSON(res, 400, { success: false, error: 'studentIds and teacherEmail are required.' });
       }
-      const result = await mongodbHandler.allocateStudents(studentIds, teacherEmail, teacherName);
+      const universityId = getRequestUniversityId(req, queryParams, body);
+      const result = await mongodbHandler.allocateStudents(studentIds, teacherEmail, teacherName, universityId);
       return sendJSON(res, 200, result);
     } catch (e) {
       return sendJSON(res, 500, { success: false, error: e.message });
     }
   }
 
-  // POST /api/students/evaluate - Save evaluation in MongoDB
+  // POST /api/students/evaluate - Save evaluation in tenant DB
   if (reqPath === '/api/students/evaluate' && req.method === 'POST') {
     try {
-      const { studentId, evaluationData } = await parseJSONBody(req);
+      const body = await parseJSONBody(req);
+      const { studentId, evaluationData } = body;
       if (!studentId || !evaluationData) {
         return sendJSON(res, 400, { success: false, error: 'studentId and evaluationData are required.' });
       }
-      const result = await mongodbHandler.submitEvaluation(studentId, evaluationData);
+      const universityId = getRequestUniversityId(req, queryParams, body);
+      const result = await mongodbHandler.submitEvaluation(studentId, evaluationData, universityId);
       return sendJSON(res, 200, result);
     } catch (e) {
       return sendJSON(res, 500, { success: false, error: e.message });
     }
   }
 
-  // POST /api/students/revaluation/flag - Flag revaluation in MongoDB
+  // POST /api/students/revaluation/flag - Flag revaluation in tenant DB
   if (reqPath === '/api/students/revaluation/flag' && req.method === 'POST') {
     try {
-      const { studentId, reason, teacherEmail } = await parseJSONBody(req);
-      const result = await mongodbHandler.flagRevaluation(studentId, { reason, teacherEmail });
+      const body = await parseJSONBody(req);
+      const { studentId, reason, teacherEmail } = body;
+      const universityId = getRequestUniversityId(req, queryParams, body);
+      const result = await mongodbHandler.flagRevaluation(studentId, { reason, teacherEmail }, universityId);
       return sendJSON(res, 200, result);
     } catch (e) {
       return sendJSON(res, 500, { success: false, error: e.message });
     }
   }
 
-  // POST /api/students/revaluation/resolve - Resolve revaluation in MongoDB
+  // POST /api/students/revaluation/resolve - Resolve revaluation in tenant DB
   if (reqPath === '/api/students/revaluation/resolve' && req.method === 'POST') {
     try {
-      const { studentId, action, adminRemarks, newTeacherEmail, newTeacherName } = await parseJSONBody(req);
+      const body = await parseJSONBody(req);
+      const { studentId, action, adminRemarks, newTeacherEmail, newTeacherName } = body;
+      const universityId = getRequestUniversityId(req, queryParams, body);
       const result = await mongodbHandler.resolveRevaluation(studentId, {
         action,
         adminRemarks,
         newTeacherEmail,
         newTeacherName
-      });
+      }, universityId);
       return sendJSON(res, 200, result);
     } catch (e) {
       return sendJSON(res, 500, { success: false, error: e.message });
@@ -890,11 +972,12 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ==============================================================
-  // Answer References Endpoints
+  // Answer References Endpoints (Scoped to Tenant Database)
   // ==============================================================
   if (reqPath === '/api/references' && req.method === 'GET') {
     try {
-      const refs = await mongodbHandler.getAllReferences();
+      const universityId = getRequestUniversityId(req, queryParams);
+      const refs = await mongodbHandler.getAllReferences(universityId);
       return sendJSON(res, 200, { success: true, references: refs });
     } catch (e) {
       return sendJSON(res, 500, { success: false, error: e.message });
@@ -904,7 +987,8 @@ const server = http.createServer(async (req, res) => {
   if (reqPath === '/api/references/add' && req.method === 'POST') {
     try {
       const refData = await parseJSONBody(req);
-      const saved = await mongodbHandler.insertReference(refData);
+      const universityId = getRequestUniversityId(req, queryParams, refData);
+      const saved = await mongodbHandler.insertReference(refData, universityId);
       return sendJSON(res, 201, { success: true, reference: saved });
     } catch (e) {
       return sendJSON(res, 500, { success: false, error: e.message });
@@ -954,6 +1038,6 @@ const server = http.createServer(async (req, res) => {
 // Connect to MongoDB and start HTTP server
 mongodbHandler.connect().then(() => {
   server.listen(PORT, () => {
-    console.log(`MPOnline Examination Portal running at http://localhost:${PORT}`);
+    console.log(`MPOnline Multi-Tenant Examination Portal running at http://localhost:${PORT}`);
   });
 });

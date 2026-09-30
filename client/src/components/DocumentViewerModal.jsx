@@ -150,9 +150,6 @@ export default function DocumentViewerModal({
                   {totalPages} {totalPages === 1 ? 'Page' : 'Pages'} {isLoadingPages && '...'}
                 </span>
               </div>
-              <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>
-                {isCloudinary ? '☁️ Encrypted Cloudinary CDN Storage' : 'Local Digital Repository'}
-              </p>
             </div>
           </div>
 

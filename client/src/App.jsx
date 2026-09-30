@@ -166,18 +166,22 @@ export default function App() {
   const handleLoginSuccess = (userData) => {
     try {
       localStorage.setItem('mponline_user', JSON.stringify(userData));
+      if (userData.universityId) {
+        localStorage.setItem('mponline_university_id', userData.universityId);
+      }
     } catch (e) {
       console.error('Failed to persist user session:', e);
     }
     setCurrentUser(userData);
     setShowLoginModal(false);
-    showNotification(`Welcome back, ${userData.name}! Authenticated as ${userData.role}.`, 'success');
+    showNotification(`Welcome back, ${userData.name}! Authenticated for ${userData.universityName || userData.universityCode || 'Portal'}.`, 'success');
     loadSystemData();
   };
 
   // Handle logout
   const handleLogout = () => {
     localStorage.removeItem('mponline_user');
+    localStorage.removeItem('mponline_university_id');
     setCurrentUser(null);
     showNotification('Logged out successfully.', 'info');
   };
@@ -204,6 +208,8 @@ export default function App() {
           currentUser={currentUser}
           students={students}
           teachers={teachers}
+          subjects={subjects}
+          departments={departments}
           metrics={metrics}
           onRefresh={loadSystemData}
           onInspectStudent={(s) => {
@@ -258,6 +264,7 @@ export default function App() {
     if (role === 'university') {
       return (
         <UniversityDashboard
+          currentUser={currentUser}
           students={students}
           subjects={subjects}
           departments={departments}
@@ -273,6 +280,8 @@ export default function App() {
         <TeacherDashboard
           currentUser={currentUser}
           students={students}
+          subjects={subjects}
+          departments={departments}
           onRefresh={loadSystemData}
           onViewDocument={(url, title, data = null) => setViewingDoc({ url, title, ...(typeof data === 'object' && data !== null ? data : {}) })}
           onStartEvaluation={(student) => setEvaluatingStudent(student)}

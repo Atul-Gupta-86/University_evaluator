@@ -4,10 +4,10 @@
   "description": "Secure Academic Answer Sheet Intake, Allocation, and Evaluation Portal",
   "main": "server.js",
   "scripts": {
+    "dev": "concurrently -n \"SERVER,VITE\" -c \"cyan,magenta\" \"node --watch server.js\" \"npm --prefix client run dev\"",
     "start": "node server.js",
-    "dev": "node server.js",
-    "client:dev": "npm --prefix client run dev",
-    "client:build": "npm --prefix client run build",
+    "client": "npm --prefix client run dev",
+    "server": "node --watch server.js",
     "build": "npm --prefix client run build"
   },
   "keywords": [
@@ -21,7 +21,11 @@
   "dependencies": {
     "cloudinary": "^2.11.0",
     "dotenv": "^18.0.4",
+    "lucide-react": "^1.49.0",
     "mongodb": "^7.6.0",
     "nodemailer": "^10.0.10"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
   }
 }

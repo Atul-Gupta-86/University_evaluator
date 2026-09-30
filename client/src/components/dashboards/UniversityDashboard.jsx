@@ -1,39 +1,126 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './UniversityDashboard.css';
-import { 
-  UploadCloud, 
-  BookOpen, 
-  CheckCircle2, 
-  AlertCircle, 
-  FileText, 
-  Eye, 
-  Trash2, 
-  Plus, 
+import {
+  UploadCloud,
+  BookOpen,
+  CheckCircle2,
+  AlertCircle,
+  FileText,
+  Eye,
+  EyeOff,
+  Trash2,
+  Plus,
   Search,
   RefreshCw,
   ExternalLink,
   Building2,
-  FolderTree
+  FolderTree,
+  ShieldCheck,
+  Mail,
+  Lock,
+  UserPlus
 } from 'lucide-react';
-import { 
-  uploadFileToCloudinary, 
-  createStudent, 
-  addSubject, 
+import {
+  uploadFileToCloudinary,
+  createStudent,
+  addSubject,
   deleteSubject,
   addDepartment,
-  deleteDepartment
+  deleteDepartment,
+  getUsers,
+  addUser,
+  deleteUser,
+  formatDeptSubject
 } from '../../api';
 
-export default function UniversityDashboard({ 
-  students, 
-  subjects, 
+export default function UniversityDashboard({
+  currentUser,
+  students,
+  subjects,
   departments = [],
-  onRefresh, 
-  onViewDocument, 
-  onNotify 
+  onRefresh,
+  onViewDocument,
+  onNotify
 }) {
-  const [activeTab, setActiveTab] = useState('intake'); // 'intake' | 'departments' | 'subjects'
-  
+  const [activeTab, setActiveTab] = useState('intake'); // 'intake' | 'administrators' | 'departments' | 'subjects'
+
+  // Administrators management state
+  const [administrators, setAdministrators] = useState([]);
+  const [isLoadingAdmins, setIsLoadingAdmins] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminName, setAdminName] = useState('');
+  const [adminDept, setAdminDept] = useState('');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [isAddingAdmin, setIsAddingAdmin] = useState(false);
+  const [adminSearchQuery, setAdminSearchQuery] = useState('');
+
+  // Fetch Administrators for this university
+  const loadAdministrators = async () => {
+    try {
+      setIsLoadingAdmins(true);
+      const list = await getUsers('administrator');
+      setAdministrators(Array.isArray(list) ? list : []);
+    } catch (err) {
+      console.error('Error fetching administrators:', err);
+    } finally {
+      setIsLoadingAdmins(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAdministrators();
+  }, []);
+
+  const handleAddAdministrator = async (e) => {
+    e.preventDefault();
+    const cleanEmail = adminEmail.trim().toLowerCase();
+    const cleanPass = adminPassword.trim();
+
+    if (!cleanEmail || !cleanPass) {
+      onNotify('Administrator Email and Password are mandatory fields.', 'warning');
+      return;
+    }
+
+    try {
+      setIsAddingAdmin(true);
+      await addUser({
+        email: cleanEmail,
+        password: cleanPass,
+        name: adminName.trim(),
+        role: 'administrator',
+        department: adminDept.trim()
+      });
+
+      onNotify(`Administrator account "${cleanEmail}" provisioned successfully in MongoDB users.`, 'success');
+      setAdminEmail('');
+      setAdminPassword('');
+      setAdminName('');
+      setAdminDept('');
+      await loadAdministrators();
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      onNotify(`Failed to create administrator: ${err.message}`, 'error');
+    } finally {
+      setIsAddingAdmin(false);
+    }
+  };
+
+  const handleDeleteAdministrator = async (targetEmail) => {
+    if (!window.confirm(`Are you sure you want to revoke access for administrator "${targetEmail}"?`)) {
+      return;
+    }
+
+    try {
+      await deleteUser(targetEmail);
+      onNotify(`Administrator "${targetEmail}" deleted from university users.`, 'success');
+      await loadAdministrators();
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      onNotify(`Failed to delete administrator: ${err.message}`, 'error');
+    }
+  };
+
   // Intake form state
   const [enrollmentNumber, setEnrollmentNumber] = useState('');
   const [studentName, setStudentName] = useState('');
@@ -92,11 +179,11 @@ export default function UniversityDashboard({
     try {
       setIsSubmitting(true);
       setUploadProgress('Uploading encrypted script directly to Cloudinary CDN...');
-      
+
       const uploadRes = await uploadFileToCloudinary(
-        selectedFile, 
-        selectedFile.name, 
-        enrollmentNumber.trim(), 
+        selectedFile,
+        selectedFile.name,
+        enrollmentNumber.trim(),
         selectedSubject
       );
 
@@ -123,7 +210,7 @@ export default function UniversityDashboard({
       });
 
       onNotify(`Answer script for ${studentName} (${enrollmentNumber}) uploaded and archived successfully!`, 'success');
-      
+
       // Reset form
       setEnrollmentNumber('');
       setStudentName('');
@@ -132,7 +219,7 @@ export default function UniversityDashboard({
       setSelectedFile(null);
       const fileInput = document.getElementById('scanned-copy-input');
       if (fileInput) fileInput.value = '';
-      
+
       onRefresh();
     } catch (err) {
       onNotify(`Submission failed: ${err.message}`, 'error');
@@ -255,24 +342,30 @@ export default function UniversityDashboard({
     <div className="tab-pane active university-dashboard-view">
       {/* Sub Tabs Navigation */}
       <div className="section-header" style={{ marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '18px' }}>
-        <div>
+        {/* <div>
           <h2>University Board Examination Portal</h2>
           <p>Answer script digitization pipeline, academic departments & syllabus catalog administration</p>
-        </div>
+        </div> */}
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button 
+          <button
             className={`btn ${activeTab === 'intake' ? 'btn-primary' : 'btn-outline'}`}
             onClick={() => setActiveTab('intake')}
           >
             <UploadCloud size={16} /> Script Intake & Registry ({students.length})
           </button>
-          <button 
+          <button
+            className={`btn ${activeTab === 'administrators' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setActiveTab('administrators')}
+          >
+            <ShieldCheck size={16} /> Add Administrator ({administrators.length})
+          </button>
+          <button
             className={`btn ${activeTab === 'departments' ? 'btn-primary' : 'btn-outline'}`}
             onClick={() => setActiveTab('departments')}
           >
             <Building2 size={16} /> Academic Departments ({departments.length})
           </button>
-          <button 
+          <button
             className={`btn ${activeTab === 'subjects' ? 'btn-primary' : 'btn-outline'}`}
             onClick={() => setActiveTab('subjects')}
           >
@@ -368,10 +461,10 @@ export default function UniversityDashboard({
                     const deptObj = departments.find(d => d.name === selectedDept || d.code === selectedDept);
                     return sub.department === selectedDept || (deptObj && (sub.department === deptObj.name || sub.department === deptObj.code));
                   }).length === 0 && (
-                    <small style={{ color: '#FC6C26', display: 'block', marginTop: '4px', fontSize: '11px' }}>
-                      ⚠️ No subjects found under this department. Please register subjects in Curriculum tab first.
-                    </small>
-                  )}
+                      <small style={{ color: '#FC6C26', display: 'block', marginTop: '4px', fontSize: '11px' }}>
+                        ⚠️ No subjects found under this department. Please register subjects in Curriculum tab first.
+                      </small>
+                    )}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -443,9 +536,9 @@ export default function UniversityDashboard({
                   </div>
                 )}
 
-                <button 
-                  type="submit" 
-                  className="btn btn-primary" 
+                <button
+                  type="submit"
+                  className="btn btn-primary"
                   style={{ width: '100%', justifyContent: 'center' }}
                   disabled={isSubmitting}
                 >
@@ -495,7 +588,7 @@ export default function UniversityDashboard({
                     <tr>
                       <th>Roll Number</th>
                       <th>Candidate Name</th>
-                      <th>Subject</th>
+                      <th>Department : Subject</th>
                       <th>Status</th>
                       <th>Digital Script</th>
                     </tr>
@@ -515,7 +608,7 @@ export default function UniversityDashboard({
                             <td style={{ fontWeight: 'bold', fontFamily: 'monospace' }}>{st.enrollmentNumber}</td>
                             <td>{st.name}</td>
                             <td>
-                              <span className="badge badge-neutral">{st.subject}</span>
+                              <span className="badge badge-neutral">{formatDeptSubject(st, subjects)}</span>
                             </td>
                             <td>
                               {st.status === 'Evaluated' ? (
@@ -528,13 +621,13 @@ export default function UniversityDashboard({
                             </td>
                             <td>
                               {fileUrl ? (
-                                <button 
+                                <button
                                   className="btn btn-outline btn-sm"
                                   onClick={() => onViewDocument(fileUrl, `Candidate Copy: ${st.name} (${st.enrollmentNumber})`, { ...st, totalPages: getPageCount(st) })}
                                   title="Inspect Digital Scan"
                                   style={{ color: 'var(--text-main)', borderColor: 'var(--border-strong)' }}
                                 >
-                                  <Eye size={12} /> Inspect ({getPageCount(st)}P)
+                                  <Eye size={12} /> Inspect
                                 </button>
                               ) : (
                                 <span style={{ fontSize: '11px', color: 'var(--text-muted)', opacity: 0.6 }}>No File Attached</span>
@@ -543,6 +636,215 @@ export default function UniversityDashboard({
                           </tr>
                         );
                       })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: ADD ADMINISTRATOR (Directly beside Script Intake) */}
+      {activeTab === 'administrators' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 400px) minmax(0, 1fr)', gap: '24px' }}>
+          {/* Add Administrator Form Card */}
+          <div className="card" style={{ height: 'fit-content' }}>
+            <div className="card-header">
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <UserPlus size={20} color="#FC6C26" /> Add University Administrator
+              </h3>
+            </div>
+            <div className="card-body">
+              <form onSubmit={handleAddAdministrator}>
+                <div className="form-group">
+                  <label>Administrator Email <span style={{ color: '#FC6C26' }}>* (Mandatory)</span></label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    placeholder="e.g. administrator@university.ac.in"
+                    value={adminEmail}
+                    onChange={(e) => setAdminEmail(e.target.value)}
+                    required
+                  />
+                  <small style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
+                    Used for logging into this university's Administrator portal.
+                  </small>
+                </div>
+
+                <div className="form-group">
+                  <label>Password <span style={{ color: '#FC6C26' }}>* (Mandatory)</span></label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showAdminPassword ? 'text' : 'password'}
+                      className="form-control"
+                      placeholder="Enter secure access password"
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      required
+                      style={{ paddingRight: '40px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowAdminPassword(!showAdminPassword)}
+                      tabIndex="-1"
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        display: 'flex'
+                      }}
+                    >
+                      {showAdminPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Administrator Full Name (Optional)</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="e.g. Dr. R.K. Sharma"
+                    value={adminName}
+                    onChange={(e) => setAdminName(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Office / Designation</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="e.g. Apex Examination Authority"
+                    value={adminDept}
+                    onChange={(e) => setAdminDept(e.target.value)}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ width: '100%', justifyContent: 'center', marginTop: '16px' }}
+                  disabled={isAddingAdmin}
+                >
+                  {isAddingAdmin ? (
+                    <>
+                      <RefreshCw size={16} className="spin" />
+                      <span>Saving in MongoDB users...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck size={16} />
+                      <span>Provision Administrator</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {/* Administrators Directory Card */}
+          <div className="card">
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ShieldCheck size={20} color="#10b981" /> Provisioned Administrators ({administrators.length})
+                </h3>
+                {/* <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  Institutional accounts stored in this university's database <code>users</code> folder.
+                </p> */}
+              </div>
+
+              <div style={{ position: 'relative', width: '220px' }}>
+                <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Search administrator..."
+                  value={adminSearchQuery}
+                  onChange={(e) => setAdminSearchQuery(e.target.value)}
+                  style={{ height: '32px', fontSize: '11.5px', paddingLeft: '30px' }}
+                />
+              </div>
+            </div>
+
+            <div className="card-body" style={{ padding: 0 }}>
+              <div className="table-responsive">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Administrator</th>
+                      <th>Email / Login</th>
+                      <th>Role & Scope</th>
+                      <th>Created At</th>
+                      <th style={{ textAlign: 'center' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {administrators.filter(a => {
+                      const q = adminSearchQuery.toLowerCase();
+                      return (a.name || '').toLowerCase().includes(q) || (a.email || '').toLowerCase().includes(q);
+                    }).length === 0 ? (
+                      <tr>
+                        <td colSpan="5" style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                          No institutional administrators registered yet. Use the form on the left to add one.
+                        </td>
+                      </tr>
+                    ) : (
+                      administrators.filter(a => {
+                        const q = adminSearchQuery.toLowerCase();
+                        return (a.name || '').toLowerCase().includes(q) || (a.email || '').toLowerCase().includes(q);
+                      }).map((adm) => (
+                        <tr key={adm.email}>
+                          <td>
+                            <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{adm.name || adm.email}</div>
+                            {adm.department && <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{adm.department}</div>}
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <Mail size={13} color="#FC6C26" />
+                              <strong style={{ fontFamily: 'monospace', color: 'var(--text-main)' }}>{adm.email}</strong>
+                            </div>
+                          </td>
+                          <td>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                              fontSize: '10.5px',
+                              fontWeight: 700,
+                              background: 'rgba(124, 58, 237, 0.15)',
+                              color: '#a78bfa',
+                              border: '1px solid rgba(124, 58, 237, 0.3)'
+                            }}>
+                              <ShieldCheck size={11} /> ADMINISTRATOR
+                            </span>
+                          </td>
+                          <td style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            {adm.createdAt ? new Date(adm.createdAt).toLocaleDateString() : 'Active'}
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <button
+                              type="button"
+                              className="btn btn-outline"
+                              onClick={() => handleDeleteAdministrator(adm.email)}
+                              style={{ padding: '4px 8px', fontSize: '11px', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                              title="Delete Administrator"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
                     )}
                   </tbody>
                 </table>
@@ -588,9 +890,9 @@ export default function UniversityDashboard({
                   />
                 </div>
 
-                <button 
-                  type="submit" 
-                  className="btn btn-primary" 
+                <button
+                  type="submit"
+                  className="btn btn-primary"
                   style={{ width: '100%', justifyContent: 'center', marginTop: '16px' }}
                   disabled={isAddingDept}
                 >
@@ -729,9 +1031,9 @@ export default function UniversityDashboard({
                   )}
                 </div>
 
-                <button 
-                  type="submit" 
-                  className="btn btn-primary" 
+                <button
+                  type="submit"
+                  className="btn btn-primary"
                   style={{ width: '100%', justifyContent: 'center', marginTop: '16px' }}
                   disabled={isAddingSub}
                 >

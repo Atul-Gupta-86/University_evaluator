@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Users, UserCheck, BookOpen, UserPlus, FileText, CheckCircle2,
   Eye, Upload, AlertCircle, RefreshCw, Trash2, BarChart2, X, Clock, Award
 } from 'lucide-react';
-import { allocateStudents, addTeacher, deleteTeacher, addReference, uploadFileToCloudinary } from '../../api';
+import { allocateStudents, addTeacher, deleteTeacher, addReference, uploadFileToCloudinary, fetchDocumentPageCount, formatDeptSubject } from '../../api';
 import './AdministratorDashboard.css';
 
 export default function AdminDashboard({
@@ -28,9 +28,38 @@ export default function AdminDashboard({
   const [selectedTeacherEmail, setSelectedTeacherEmail] = useState('');
   const [isAllocating, setIsAllocating] = useState(false);
   const [selectedTeacherForPerf, setSelectedTeacherForPerf] = useState(null);
+  const [pageCounts, setPageCounts] = useState({});
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchMissingPageCounts = async () => {
+      for (const s of students) {
+        const id = s.id || s._id || s.enrollmentNumber || s.enrollment;
+        const url = s.copyUrl || s.copy_url || s.fileUrl || s.url;
+        if (!url || (s.totalPages && Number(s.totalPages) > 1)) continue;
+        if (pageCounts[id]) continue;
+        const clean = url.toLowerCase();
+        if (clean.includes('.png') || clean.includes('.jpg') || clean.includes('.jpeg') || clean.includes('.webp')) {
+          continue;
+        }
+        try {
+          const count = await fetchDocumentPageCount(url);
+          if (isMounted && count && count > 0) {
+            setPageCounts(prev => ({ ...prev, [id]: count }));
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    };
+    fetchMissingPageCounts();
+    return () => { isMounted = false; };
+  }, [students]);
 
   // Helper to accurately resolve page count of answer script or reference document
   const getPageCount = (item) => {
+    const id = item?.id || item?._id || item?.enrollmentNumber || item?.enrollment;
+    if (id && pageCounts[id] && pageCounts[id] > 0) return pageCounts[id];
     if (item?.totalPages && Number(item.totalPages) > 0) return Number(item.totalPages);
     if (item?.pages && Array.isArray(item.pages) && item.pages.length > 0) return item.pages.length;
     const url = (item?.copyUrl || item?.copy_url || item?.fileUrl || item?.url || '').toLowerCase();
@@ -400,7 +429,7 @@ export default function AdminDashboard({
                   </th>
                   <th>Enrollment No</th>
                   <th>Student Name</th>
-                  <th>Subject</th>
+                  <th>Department : Subject</th>
                   <th>Uploaded Date</th>
                   <th>Allocation Status</th>
                   <th>Evaluation Status</th>
@@ -443,7 +472,7 @@ export default function AdminDashboard({
                         </td>
                         <td className="mono" style={{ fontWeight: 700 }}>{s.enrollmentNumber || s.enrollment}</td>
                         <td style={{ fontWeight: 600 }}>{s.name || s.studentName}</td>
-                        <td><span style={{ fontWeight: 600 }}>{s.subjectCode || s.subject}</span>: {s.subjectTitle || s.subject}</td>
+                        <td>{formatDeptSubject(s, subjects)}</td>
                         <td style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                           {new Date(s.uploadedDate || Date.now()).toLocaleDateString('en-IN')}
                         </td>
@@ -467,7 +496,7 @@ export default function AdminDashboard({
                         <td style={{ textAlign: 'center' }}>
                           <button className="btn btn-secondary btn-sm" onClick={() => handleInspect(s)}>
                             <Eye size={13} />
-                            Inspect ({getPageCount(s)} {getPageCount(s) === 1 ? 'Page' : 'Pages'})
+                            Inspect
                           </button>
                         </td>
                       </tr>
@@ -515,7 +544,7 @@ export default function AdminDashboard({
               <thead>
                 <tr>
                   <th>Teacher Name</th>
-                  <th>Department</th>
+                  <th>Department : Subject</th>
                   <th>Login Email</th>
                   <th>Allocated</th>
                   <th>Evaluated</th>
@@ -537,7 +566,7 @@ export default function AdminDashboard({
                   return (
                     <tr key={t.email}>
                       <td style={{ fontWeight: 700 }}>{t.name}</td>
-                      <td>{t.department}</td>
+                      <td>{t.department ? (t.subject ? `${t.department} : ${t.subject}` : t.department) : (t.subject || '—')}</td>
                       <td className="mono" style={{ fontSize: '12px' }}>{t.email}</td>
                       <td style={{ fontWeight: 700 }}>{teacherScripts.length}</td>
                       <td style={{ color: 'var(--accent-green)', fontWeight: 700 }}>{checkedCount}</td>
@@ -575,7 +604,7 @@ export default function AdminDashboard({
                 <tr>
                   <th>Enrollment No</th>
                   <th>Candidate Name</th>
-                  <th>Subject</th>
+                  <th>Department : Subject</th>
                   <th>Uploaded Copy File</th>
                   <th>Action</th>
                 </tr>
@@ -585,7 +614,7 @@ export default function AdminDashboard({
                   <tr key={s.id}>
                     <td className="mono" style={{ fontWeight: 700 }}>{s.enrollmentNumber || s.enrollment}</td>
                     <td style={{ fontWeight: 600 }}>{s.name || s.studentName}</td>
-                    <td>{s.subjectCode || s.subject}: {s.subjectTitle || s.subject}</td>
+                    <td>{formatDeptSubject(s, subjects)}</td>
                     <td>
                       <span className="cloudinary-status-tag">
                         {(s.copy_url || s.copyUrl || s.fileUrl)?.includes('cloudinary') ? 'Cloudinary CDN Script' : (s.fileName || 'Scanned Document')}
@@ -594,7 +623,7 @@ export default function AdminDashboard({
                     <td>
                       <button className="btn btn-secondary btn-sm" onClick={() => handleInspect(s)}>
                         <Eye size={13} />
-                        View Script ({getPageCount(s)} {getPageCount(s) === 1 ? 'Page' : 'Pages'})
+                        Inspect
                       </button>
                     </td>
                   </tr>
@@ -916,7 +945,7 @@ export default function AdminDashboard({
                             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                           >
                             <FileText size={13} />
-                            View Reference Document ({getPageCount(r)} {getPageCount(r) === 1 ? 'Page' : 'Pages'})
+                            View Reference Document
                           </button>
                         </td>
                       </tr>
@@ -983,7 +1012,7 @@ export default function AdminDashboard({
                       {t.name} — Detailed Performance
                     </h3>
                     <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>
-                      {t.email} • {t.department}
+                      {t.email} • {t.department}{t.subject ? ` : ${t.subject}` : ''}
                     </p>
                   </div>
                 </div>
@@ -1046,7 +1075,7 @@ export default function AdminDashboard({
                         <tr>
                           <th>Enrollment</th>
                           <th>Student Name</th>
-                          <th>Subject</th>
+                          <th>Department : Subject</th>
                           <th>Status</th>
                           <th>Score</th>
                           <th style={{ textAlign: 'center' }}>Script</th>
@@ -1060,7 +1089,7 @@ export default function AdminDashboard({
                             <tr key={s.id || s.enrollment}>
                               <td className="mono" style={{ fontWeight: 600 }}>{s.enrollmentNumber || s.enrollment}</td>
                               <td>{s.name || s.studentName}</td>
-                              <td>{s.subjectCode || s.subject}</td>
+                              <td>{formatDeptSubject(s, subjects)}</td>
                               <td>
                                 <span className={`status-pill ${isDone ? 'status-evaluated' : 'status-pending'}`} style={{ fontSize: '10px', padding: '2px 8px' }}>
                                   {isDone ? 'Checked' : 'Pending'}
@@ -1073,7 +1102,7 @@ export default function AdminDashboard({
                                   style={{ padding: '4px 10px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
                                   onClick={() => handleInspect(s)}
                                 >
-                                  <Eye size={11} /> Inspect ({getPageCount(s)} {getPageCount(s) === 1 ? 'Pg' : 'Pgs'})
+                                  <Eye size={11} /> Inspect
                                 </button>
                               </td>
                             </tr>
