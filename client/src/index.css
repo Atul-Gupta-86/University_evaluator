@@ -15,12 +15,48 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
 
-:root {
+/* ==========================================================================
+   GLOBAL REMOVAL OF HORIZONTAL SCROLLBARS ACROSS ALL SECTIONS & WINDOWS
+   ========================================================================== */
+* {
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar:horizontal {
+  height: 0px !important;
+  display: none !important;
+  background: transparent !important;
+}
+
+.table-responsive,
+.nav-tabs,
+.table-scroll,
+.overflow-x-auto,
+[class*="table-responsive"] {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.table-responsive::-webkit-scrollbar,
+.nav-tabs::-webkit-scrollbar,
+.table-scroll::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar,
+[class*="table-responsive"]::-webkit-scrollbar {
+  display: none !important;
+  width: 0px !important;
+  height: 0px !important;
+}
+
+:root,
+body.light-mode,
+.light-mode,
+[data-theme="light"] {
+  /* LIGHT MODE: University Dashboard UI Palette */
   --bg-primary: #F8E7C9;
   --bg-secondary: #edd8b5;
-  --surface-glass: rgba(248, 231, 201, 0.94);
+  --surface-glass: rgba(255, 255, 255, 0.45);
   --surface-glass-solid: #F8E7C9;
-  --surface-glass-accent: #ebd5b3;
+  --surface-glass-accent: rgba(252, 108, 38, 0.12);
 
   --border-subtle: rgba(252, 108, 38, 0.25);
   --border-strong: #FC6C26;
@@ -36,7 +72,7 @@
   --accent-sand: #F8E7C9;
   --accent-blue: #FC6C26;
   --accent-green: #064E3B;
-  --accent-red: #FC6C26;
+  --accent-red: #d9381e;
   --accent-amber: #FC6C26;
   --accent-orange: #FC6C26;
 
@@ -61,12 +97,51 @@
   --shadow-subtle: 0 2px 8px rgba(6, 78, 59, 0.06);
 }
 
+body.dark-mode,
+.dark-mode,
+[data-theme="dark"] {
+  /* DARK MODE: Administrator Dashboard UI Palette */
+  --bg-primary: #090b10;
+  --bg-secondary: #0d1117;
+  --surface-glass: rgba(255, 255, 255, 0.04);
+  --surface-glass-solid: #111827;
+  --surface-glass-accent: rgba(245, 158, 11, 0.12);
+
+  --border-subtle: rgba(255, 255, 255, 0.12);
+  --border-strong: #f59e0b;
+  --border-glass: rgba(245, 158, 11, 0.35);
+  --border-highlight: #fbbf24;
+
+  --text-main: #ffffff;
+  --text-secondary: rgba(235, 195, 150, 0.95);
+  --text-muted: rgba(185, 175, 168, 0.75);
+  --text-inverted: #090b10;
+
+  --accent-ink: #f59e0b;
+  --accent-sand: #111827;
+  --accent-blue: #38bdf8;
+  --accent-green: #10b981;
+  --accent-red: #ef4444;
+  --accent-amber: #f59e0b;
+  --accent-orange: #f97316;
+
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  --shadow-elevated: 0 16px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  --shadow-subtle: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
 *,
 *::before,
 *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -78,9 +153,28 @@ body {
   min-height: 100vh;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Universal text color enforcement */
+body.dark-mode {
+  background-color: #080a0f !important;
+  background-image: 
+    radial-gradient(ellipse 65% 50% at 85% 18%, rgba(217, 119, 6, 0.32) 0%, rgba(180, 83, 9, 0.12) 45%, transparent 70%),
+    radial-gradient(ellipse 70% 55% at 12% 88%, rgba(180, 83, 9, 0.28) 0%, rgba(234, 88, 12, 0.1) 45%, transparent 70%),
+    radial-gradient(ellipse 85% 35% at 50% 68%, rgba(245, 158, 11, 0.16) 0%, transparent 65%),
+    linear-gradient(180deg, rgba(10, 12, 18, 0.92) 0%, rgba(6, 7, 11, 0.98) 100%) !important;
+  background-attachment: fixed !important;
+  color: #ffffff !important;
+}
+
+body.light-mode {
+  background-color: #F8E7C9 !important;
+  background-image: linear-gradient(180deg, #F8E7C9 0%, #edd8b5 100%) !important;
+  background-attachment: fixed !important;
+  color: #064E3B !important;
+}
+
+/* Universal text color enforcement based on active theme */
 body,
 h1,
 h2,
@@ -104,7 +198,138 @@ em,
 b,
 small,
 div {
-  color: #064E3B;
+  color: var(--text-main);
+}
+
+/* Universal Dark Mode Text & Color Overrides: Guarantees zero green text leakage */
+.dark-mode [style*="#064E3B"],
+.dark-mode [style*="#047857"],
+.dark-mode [style*="#059669"],
+.dark-mode [style*="color: #064E3B"],
+.dark-mode [style*="color:#064E3B"],
+.dark-mode [style*="color: rgb(6, 78, 59)"],
+.dark-mode [style*="color: rgb(4, 120, 87)"] {
+  color: #ffffff !important;
+}
+
+.dark-mode h1,
+.dark-mode h2,
+.dark-mode h3,
+.dark-mode h4,
+.dark-mode h5,
+.dark-mode h6,
+.dark-mode label,
+.dark-mode table,
+.dark-mode thead th,
+.dark-mode tbody td,
+.dark-mode .user-badge-name,
+.dark-mode .header-title-wrap h1,
+.dark-mode .modal-dialog,
+.dark-mode .modal-header h3 {
+  color: #ffffff !important;
+}
+
+.dark-mode thead th {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-bottom: 2px solid rgba(245, 158, 11, 0.4) !important;
+  color: #ffffff !important;
+}
+
+.dark-mode tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark-mode tbody tr:hover {
+  background: rgba(245, 158, 11, 0.06) !important;
+}
+
+.dark-mode .filter-btn {
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.dark-mode .filter-btn.active {
+  background: #f59e0b !important;
+  color: #090b10 !important;
+  font-weight: 800 !important;
+}
+
+/* ---------------- Theme Mode Switcher Button ---------------- */
+.theme-mode-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  border: none;
+}
+
+.light-mode .theme-mode-toggle-btn,
+.university-theme .theme-mode-toggle-btn {
+  background: rgba(255, 255, 255, 0.6) !important;
+  border: 1.5px solid #FC6C26 !important;
+  color: #064E3B !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.8),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.95),
+    0 4px 12px rgba(6, 78, 59, 0.08) !important;
+}
+
+.light-mode .theme-mode-toggle-btn:hover {
+  background: rgba(252, 108, 38, 0.15) !important;
+  transform: translateY(-1px);
+}
+
+.light-mode .theme-toggle-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #FC6C26;
+  color: #ffffff;
+}
+
+.dark-mode .theme-mode-toggle-btn,
+.administrator-theme .theme-mode-toggle-btn {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.45) !important;
+  color: #ffffff !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.4),
+    0 4px 16px rgba(0, 0, 0, 0.35) !important;
+}
+
+.dark-mode .theme-mode-toggle-btn:hover {
+  background: rgba(245, 158, 11, 0.15) !important;
+  border-color: #f59e0b !important;
+  transform: translateY(-1px);
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.25),
+    0 0 16px rgba(245, 158, 11, 0.3) !important;
+}
+
+.dark-mode .theme-toggle-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #090b10;
 }
 
 /* ---------------- Main Layout Container ---------------- */
@@ -167,68 +392,79 @@ div {
 .app-header {
   position: sticky;
   top: 0;
-  z-index: 100;
-  min-height: 70px;
+  z-index: 1000;
+  min-height: 58px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 32px;
+  padding: 8px 24px;
   border-bottom: 2px solid var(--border-strong);
   background: rgba(248, 231, 201, 0.95);
   backdrop-filter: blur(16px);
-  gap: 20px;
-  flex-wrap: wrap;
-  margin-bottom: 28px;
+  gap: 12px;
+  flex-wrap: nowrap !important;
+  margin-bottom: 24px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .main-content {
   margin-top: 8px;
+  max-width: 100%;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .app-header {
-    padding: 12px 16px;
-    gap: 14px;
-    min-height: 64px;
-    margin-bottom: 20px;
+    padding: 8px 12px;
+    gap: 8px;
+    min-height: 54px;
+    margin-bottom: 16px;
+    overflow-x: auto;
   }
 }
 
 .header-brand {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .header-logo-icon {
-  width: 40px;
-  height: 40px;
-  background: #FC6C26;
-  color: #064E3B !important;
+  width: 36px;
+  height: 36px;
+  background: var(--accent-orange);
+  color: #ffffff !important;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
   font-weight: 800;
-  font-size: 16px;
+  font-size: 14px;
   letter-spacing: 0.5px;
-  border: 1.5px solid #064E3B;
+  border: 1.5px solid transparent;
   box-shadow: 0 2px 8px rgba(252, 108, 38, 0.35);
   flex-shrink: 0;
 }
 
+.header-title-wrap {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .header-title-wrap h1 {
-  font-size: 15.5px;
+  font-size: 14.5px;
   font-weight: 700;
   letter-spacing: -0.2px;
-  color: #064E3B;
-  line-height: 1.25;
+  color: var(--text-main);
+  line-height: 1.2;
   margin-bottom: 2px;
 }
 
 .header-title-wrap p {
-  font-size: 10.5px;
-  color: #064E3B;
+  font-size: 9.5px;
+  color: var(--text-muted);
   opacity: 0.85;
   text-transform: uppercase;
   letter-spacing: 0.8px;
@@ -238,27 +474,29 @@ div {
 .header-user-status {
   display: flex;
   align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
+  gap: 8px;
+  flex-wrap: nowrap !important;
+  flex-shrink: 0;
 }
 
 .user-badge {
   display: inline-flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 2px;
-  margin-right: 4px;
+  gap: 1px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .user-badge-name {
-  font-size: 13.5px;
+  font-size: 12px;
   font-weight: 700;
-  color: #064E3B;
+  color: var(--text-main);
 }
 
 .user-badge-role {
-  font-size: 10px;
-  color: #FC6C26 !important;
+  font-size: 9px;
+  color: var(--accent-orange) !important;
   text-transform: uppercase;
   letter-spacing: 0.8px;
   font-weight: 800;
@@ -334,15 +572,15 @@ button:disabled,
 }
 
 .btn-sm {
-  padding: 6px 12px;
-  font-size: 12px;
-  gap: 6px;
+  padding: 4px 9px;
+  font-size: 11px;
+  gap: 5px;
 }
 
 .btn-icon-only {
-  padding: 8px;
-  width: 36px;
-  height: 36px;
+  padding: 6px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
 }
 
@@ -350,15 +588,15 @@ button:disabled,
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 18px;
+  gap: 4px;
+  margin-bottom: 13px;
 }
 
 label {
-  font-size: 11.5px;
+  font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.5px;
   color: #064E3B;
   display: block;
 }
@@ -371,15 +609,15 @@ input[type="file"],
 select,
 textarea {
   width: 100%;
-  padding: 10px 14px;
-  font-size: 13.5px;
+  padding: 7px 11px;
+  font-size: 12px;
   color: #064E3B;
   background: #F8E7C9;
   border: 1.5px solid #FC6C26;
   border-radius: var(--radius-sm);
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
   font-family: inherit;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 input::placeholder,
@@ -400,6 +638,39 @@ select option {
   background: #F8E7C9;
   color: #064E3B;
   padding: 8px;
+}
+
+body.dark-mode select,
+.dark-mode select,
+.administrator-theme select,
+[data-theme="dark"] select {
+  background: #111827 !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+body.dark-mode select option,
+body.dark-mode option,
+.dark-mode select option,
+.dark-mode option,
+.administrator-theme select option,
+.administrator-theme option,
+[data-theme="dark"] select option,
+[data-theme="dark"] option {
+  background-color: #111827 !important;
+  color: #ffffff !important;
+}
+
+body.light-mode select option,
+body.light-mode option,
+.light-mode select option,
+.light-mode option,
+.university-theme select option,
+.university-theme option,
+[data-theme="light"] select option,
+[data-theme="light"] option {
+  background-color: #F8E7C9 !important;
+  color: #064E3B !important;
 }
 
 /* ---------------- Stat Boxes (Teacher & Admin) ---------------- */
@@ -455,9 +726,9 @@ select option {
 /* ---------------- Tabs & Controls ---------------- */
 .nav-tabs {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   border-bottom: 2px solid #FC6C26;
-  margin-bottom: 28px;
+  margin-bottom: 18px;
   overflow-x: auto;
   padding-bottom: 2px;
 }
@@ -466,15 +737,15 @@ select option {
   background: transparent;
   border: 1.5px solid transparent;
   border-bottom: none;
-  padding: 12px 22px;
-  font-size: 13.5px;
+  padding: 8px 16px;
+  font-size: 12.5px;
   font-weight: 600;
   color: #064E3B;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   transition: all 0.15s ease;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   cursor: pointer;
 }
 
@@ -497,17 +768,19 @@ select option {
 .table-responsive {
   width: 100%;
   overflow-x: auto;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
   border: 1.5px solid rgba(252, 108, 38, 0.35);
   border-radius: var(--radius-md);
   background: #F8E7C9;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 13px;
+  font-size: 11.5px;
   color: #064E3B;
 }
 
@@ -515,10 +788,10 @@ thead th {
   background: rgba(252, 108, 38, 0.15);
   color: #064E3B !important;
   font-weight: 800;
-  font-size: 11.5px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
-  padding: 14px 18px;
+  letter-spacing: 0.4px;
+  padding: 8px 10px;
   border-bottom: 2px solid #FC6C26;
   white-space: nowrap;
 }
@@ -533,21 +806,22 @@ tbody tr:hover {
 }
 
 tbody td {
-  padding: 14px 18px;
+  padding: 8px 10px;
   color: #064E3B;
   vertical-align: middle;
+  font-size: 11.5px;
 }
 
 .status-pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 11px;
+  gap: 4px;
+  font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
-  padding: 5px 12px;
-  border-radius: 6px;
+  letter-spacing: 0.4px;
+  padding: 2.5px 8px;
+  border-radius: 5px;
   border-width: 1.5px;
   border-style: solid;
   line-height: 1.2;
@@ -605,8 +879,8 @@ tbody td {
   background: #F8E7C9;
   border: none;
   border-right: 1.5px solid #FC6C26;
-  padding: 8px 16px;
-  font-size: 12.5px;
+  padding: 6px 12px;
+  font-size: 11.5px;
   font-weight: 600;
   color: #064E3B !important;
   border-radius: 0;
@@ -628,9 +902,9 @@ tbody td {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  padding: 20px 24px;
-  margin-bottom: 24px;
+  gap: 14px;
+  padding: 12px 18px;
+  margin-bottom: 18px;
   border-radius: var(--radius-md);
   background: #F8E7C9;
   border: 1.5px solid rgba(252, 108, 38, 0.35);
@@ -640,7 +914,7 @@ tbody td {
 .allocation-controls {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   flex: 1;
   max-width: 680px;
   flex-wrap: wrap;
@@ -670,36 +944,107 @@ tbody td {
   gap: 10px;
 }
 
-/* ---------------- Modal Dialogs ---------------- */
+/* ---------------- Modal Dialogs & Blurred Floating Popups ---------------- */
 .modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 500;
-  background: rgba(6, 78, 59, 0.45);
-  backdrop-filter: blur(6px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 99999 !important;
+  background: rgba(18, 38, 30, 0.45) !important;
+  backdrop-filter: blur(16px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(150%) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
 }
 
 .modal-dialog {
+  position: relative !important;
+  z-index: 100000 !important;
   width: 100%;
   max-width: 680px;
   max-height: 90vh;
   overflow-y: auto;
   padding: 32px 36px;
-  border-radius: var(--radius-lg);
-  background: #F8E7C9;
-  border: 2px solid #FC6C26;
-  color: #064E3B;
-  box-shadow: var(--shadow-elevated);
+  border-radius: 20px !important;
+  background: rgba(248, 237, 218, 0.92) !important;
+  backdrop-filter: blur(28px) saturate(160%) brightness(1.02) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(160%) brightness(1.02) !important;
+  border: 1.5px solid rgba(252, 108, 38, 0.45) !important;
+  color: var(--text-main);
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.95),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 1),
+    inset 0 0 24px rgba(252, 108, 38, 0.12),
+    0 24px 64px rgba(6, 78, 59, 0.22) !important;
   animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  margin: auto !important;
 }
 
 .modal-dialog.modal-xl {
   max-width: 1100px;
   width: 95vw;
+}
+
+/* Dark Mode Universal Modal & Backdrop Overrides */
+.dark-mode .modal-backdrop,
+body.dark-mode .modal-backdrop {
+  background: rgba(4, 7, 13, 0.78) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+}
+
+.dark-mode .modal-dialog,
+body.dark-mode .modal-dialog,
+.dark-mode .modal-profile-dialog,
+.dark-mode .modal-doc-viewer,
+.dark-mode .admin-liquid-modal {
+  border-radius: 20px !important;
+  background: rgba(14, 18, 28, 0.88) !important;
+  backdrop-filter: blur(28px) saturate(190%) brightness(1.1) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) brightness(1.1) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 24px rgba(245, 158, 11, 0.15),
+    0 28px 75px rgba(0, 0, 0, 0.75) !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.35) !important;
+  color: #ffffff !important;
+}
+
+/* Light Mode Universal Modal & Backdrop Overrides */
+.light-mode .modal-backdrop,
+body.light-mode .modal-backdrop,
+body:not(.dark-mode) .modal-backdrop {
+  background: rgba(18, 38, 30, 0.45) !important;
+  backdrop-filter: blur(16px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(150%) !important;
+}
+
+.light-mode .modal-dialog,
+body.light-mode .modal-dialog,
+body:not(.dark-mode) .modal-dialog,
+.light-mode .modal-profile-dialog,
+.light-mode .modal-doc-viewer {
+  border-radius: 20px !important;
+  background: rgba(248, 237, 218, 0.92) !important;
+  backdrop-filter: blur(28px) saturate(160%) brightness(1.02) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(160%) brightness(1.02) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.95),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 1),
+    inset 0 0 24px rgba(252, 108, 38, 0.12),
+    0 24px 64px rgba(6, 78, 59, 0.22) !important;
+  border: 1.5px solid rgba(252, 108, 38, 0.45) !important;
+  color: #064E3B !important;
 }
 
 @keyframes modalFadeIn {

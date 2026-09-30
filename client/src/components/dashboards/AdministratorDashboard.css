@@ -1,0 +1,1018 @@
+/* ==========================================================================
+   MPOnline Evaluation Portal - Complete Liquid Glass UI System
+   Applied to all options and nested options in the Administrator Dashboard,
+   harmonized strictly with the dark amber/gold palette.
+   ========================================================================== */
+
+.administrator-theme,
+.dark-mode {
+  --admin-bg-base: #090b10;
+  --liquid-glass-bg: rgba(255, 255, 255, 0.04);
+  --liquid-glass-border-rim: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+  --liquid-glass-specular: inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.5);
+  --liquid-glass-glow: inset 0 0 12px rgba(255, 255, 255, 0.2);
+  --liquid-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+
+  --color-gold: #f59e0b;
+  --color-gold-bright: #fbbf24;
+  --color-copper: #ea580c;
+  --color-orange: #f97316;
+  
+  --text-head: #ffffff;
+  --text-sub: rgba(235, 195, 150, 0.95);
+  --text-body: rgba(230, 222, 214, 0.9);
+  --text-muted: rgba(185, 175, 168, 0.75);
+
+  min-height: 100vh;
+  color: var(--text-head);
+  background-color: var(--admin-bg-base);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ---------------- Atmospheric Backdrop ---------------- */
+.administrator-theme::before,
+.dark-mode::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-color: #080a0f;
+  background-image: 
+    radial-gradient(ellipse 65% 50% at 85% 18%, rgba(217, 119, 6, 0.32) 0%, rgba(180, 83, 9, 0.12) 45%, transparent 70%),
+    radial-gradient(ellipse 70% 55% at 12% 88%, rgba(180, 83, 9, 0.28) 0%, rgba(234, 88, 12, 0.1) 45%, transparent 70%),
+    radial-gradient(ellipse 85% 35% at 50% 68%, rgba(245, 158, 11, 0.16) 0%, transparent 65%),
+    linear-gradient(180deg, rgba(10, 12, 18, 0.92) 0%, rgba(6, 7, 11, 0.98) 100%);
+  background-attachment: fixed;
+}
+
+.administrator-theme > *:not(.modal-backdrop):not(.evaluation-modal):not(.login-modal-overlay):not(.toast-notification),
+.dark-mode > *:not(.modal-backdrop):not(.evaluation-modal):not(.login-modal-overlay):not(.toast-notification) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Universal Typography within Administrator theme */
+.administrator-theme,
+.administrator-theme h1,
+.administrator-theme h2,
+.administrator-theme h3,
+.administrator-theme h4,
+.administrator-theme h5,
+.administrator-theme h6,
+.administrator-theme p,
+.administrator-theme span,
+.administrator-theme label,
+.administrator-theme td,
+.administrator-theme th,
+.administrator-theme li,
+.administrator-theme a {
+  color: var(--text-head);
+}
+
+/* ==========================================================================
+   1. TOP NAVBAR & CONTROLS (LIQUID GLASS FORMAT)
+   ========================================================================== */
+.administrator-theme .app-header {
+  border-radius: 0 0 20px 20px !important;
+  background: rgba(20, 24, 34, 0.72) !important;
+  backdrop-filter: blur(0px) url(#lg-filter) blur(0px) saturate(1.5) brightness(1.1) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.8) brightness(1.15) contrast(1.05) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.4),
+    inset 0 0 14px rgba(255, 255, 255, 0.08),
+    0 10px 32px rgba(0, 0, 0, 0.45) !important;
+  border: none !important;
+}
+
+.administrator-theme .header-logo-icon {
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.95) 0%, rgba(180, 83, 9, 0.85) 100%) !important;
+  color: #fff !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.6),
+    0 4px 16px rgba(217, 119, 6, 0.45) !important;
+  border: none !important;
+  font-weight: 800 !important;
+}
+
+.administrator-theme .header-title-wrap h1 {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+.administrator-theme .header-title-wrap p {
+  color: var(--text-sub) !important;
+  font-size: 10.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.6px !important;
+  text-transform: uppercase !important;
+}
+
+/* Status capsule (Liquid Glass) */
+.administrator-theme .header-user-status > div:first-child {
+  border-radius: 20px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  backdrop-filter: blur(8px) saturate(1.6) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(245, 158, 11, 0.3),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.4),
+    inset 0 0 10px rgba(245, 158, 11, 0.15),
+    0 4px 16px rgba(0, 0, 0, 0.25) !important;
+  border: none !important;
+  color: var(--color-gold-bright) !important;
+  padding: 5px 14px !important;
+}
+
+.administrator-theme .header-user-status > div:first-child span:first-child {
+  background: var(--color-gold) !important;
+  box-shadow: 0 0 8px var(--color-gold), 0 0 3px #fff !important;
+}
+
+.administrator-theme .header-user-status > div:first-child span {
+  color: var(--color-gold-bright) !important;
+}
+
+/* Quick Action Buttons (Liquid Glass) */
+.administrator-theme .admin-quick-btn {
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  backdrop-filter: blur(8px) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.35),
+    0 3px 10px rgba(0, 0, 0, 0.2) !important;
+  border: none !important;
+  color: var(--text-sub) !important;
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.25s ease !important;
+}
+
+.administrator-theme .admin-quick-btn:hover {
+  background: rgba(245, 158, 11, 0.18) !important;
+  color: #ffffff !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.25),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.5),
+    0 5px 16px rgba(245, 158, 11, 0.3) !important;
+}
+
+.administrator-theme .user-badge {
+  text-align: right !important;
+}
+
+.administrator-theme .user-badge-name {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+.administrator-theme .user-badge-role {
+  color: var(--color-gold) !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.8px !important;
+  text-transform: uppercase !important;
+}
+
+/* Profile & Logout Buttons (Liquid Glass) */
+.administrator-theme .header-user-status .btn-secondary {
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  backdrop-filter: blur(0px) url(#lg-filter) blur(0px) saturate(1.5) brightness(1.1) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.45),
+    inset 0 0 10px rgba(255, 255, 255, 0.15),
+    0 4px 16px rgba(0, 0, 0, 0.2) !important;
+  border: none !important;
+  color: #f1f5f9 !important;
+  font-weight: 600 !important;
+  transition: all 0.25s ease !important;
+}
+
+.administrator-theme .header-user-status .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.09) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.25),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.65),
+    0 6px 20px rgba(0, 0, 0, 0.3) !important;
+  color: #ffffff !important;
+}
+
+.administrator-theme .header-user-status .btn-secondary svg {
+  color: var(--color-gold) !important;
+  stroke: var(--color-gold) !important;
+}
+
+/* ==========================================================================
+   2. ALL 4 METRIC CARDS (LIQUID GLASS FORMAT APPLIED TO ALL)
+   ========================================================================== */
+.administrator-theme .metrics-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 18px !important;
+  margin-bottom: 26px !important;
+}
+
+@media (max-width: 1080px) {
+  .administrator-theme .metrics-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .administrator-theme .metrics-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.administrator-theme .stat-box {
+  border-radius: 20px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  background-image: none !important;
+  backdrop-filter: blur(0px) url(#lg-filter) blur(0px) saturate(1.5) brightness(1.1) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 12px rgba(255, 255, 255, 0.2),
+    0 8px 32px rgba(0, 0, 0, 0.2) !important;
+  border: none !important;
+  padding: 20px 22px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease !important;
+}
+
+.administrator-theme .stat-box:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.25),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.7),
+    inset 0 0 16px rgba(255, 255, 255, 0.35),
+    0 12px 36px rgba(0, 0, 0, 0.35) !important;
+}
+
+.administrator-theme .stat-box-label {
+  color: var(--text-sub) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.7px !important;
+}
+
+.administrator-theme .stat-box-value {
+  color: #ffffff !important;
+  font-size: 36px !important;
+  font-weight: 700 !important;
+  margin: 10px 0 6px !important;
+  line-height: 1.1 !important;
+  display: block !important;
+  font-family: 'Outfit', sans-serif !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+.administrator-theme .stat-box-subtext {
+  color: var(--text-muted) !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+}
+
+/* Glass bubble icon inside stat boxes */
+.administrator-theme .stat-box div[style*="border-radius: 50%"] {
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(8px) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(245, 158, 11, 0.35),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.45),
+    0 3px 10px rgba(217, 119, 6, 0.2) !important;
+  border: none !important;
+  width: 34px !important;
+  height: 34px !important;
+}
+
+.administrator-theme .stat-box div[style*="border-radius: 50%"] svg {
+  color: var(--color-gold) !important;
+  stroke: var(--color-gold) !important;
+}
+
+/* ==========================================================================
+   3. NAVIGATION TABS TRACK & TABS (LIQUID GLASS FORMAT)
+   ========================================================================== */
+.administrator-theme .nav-tabs {
+  border-radius: 18px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  backdrop-filter: blur(0px) url(#lg-filter) blur(0px) saturate(1.5) brightness(1.1) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.4),
+    inset 0 0 12px rgba(255, 255, 255, 0.12),
+    0 8px 32px rgba(0, 0, 0, 0.2) !important;
+  border: none !important;
+  padding: 6px !important;
+  display: flex !important;
+  gap: 10px !important;
+  margin-bottom: 26px !important;
+  width: fit-content !important;
+}
+
+.administrator-theme .nav-tab {
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  backdrop-filter: blur(6px) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  border: none !important;
+  color: rgba(230, 215, 195, 0.85) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  padding: 10px 22px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.administrator-theme .nav-tab:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.45),
+    0 4px 14px rgba(0, 0, 0, 0.25) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Active tab (Liquid Amber Glass Glow) */
+.administrator-theme .nav-tab.active {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.95) 0%, rgba(234, 88, 12, 0.9) 100%) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.65),
+    0 6px 20px rgba(234, 88, 12, 0.45) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+.administrator-theme .nav-tab.active svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+.administrator-theme .nav-tab:not(.active) svg {
+  color: var(--color-gold) !important;
+  stroke: var(--color-gold) !important;
+}
+
+/* ==========================================================================
+   4. NESTED SUB-FILTERS, SEARCH & BUTTONS (LIQUID GLASS FORMAT)
+   ========================================================================== */
+.administrator-theme .btn-secondary {
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  backdrop-filter: blur(0px) url(#lg-filter) blur(0px) saturate(1.5) brightness(1.1) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.45),
+    inset 0 0 10px rgba(255, 255, 255, 0.15),
+    0 4px 16px rgba(0, 0, 0, 0.2) !important;
+  border: none !important;
+  color: rgba(235, 220, 210, 0.9) !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+.administrator-theme .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.25),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.65),
+    0 6px 20px rgba(0, 0, 0, 0.25) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+}
+
+.administrator-theme .btn-primary:not(.btn-perf) {
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.95) 0%, rgba(234, 88, 12, 0.9) 100%) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.65),
+    0 6px 20px rgba(234, 88, 12, 0.4) !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+.administrator-theme .btn-outline {
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  backdrop-filter: blur(8px) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(245, 158, 11, 0.35),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.35),
+    0 3px 10px rgba(0, 0, 0, 0.2) !important;
+  border: none !important;
+  color: var(--color-gold-bright) !important;
+}
+
+/* Search Bar & Form Controls (Liquid Glass) */
+.administrator-theme input[type="text"],
+.administrator-theme select,
+.administrator-theme textarea {
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  backdrop-filter: blur(0px) url(#lg-filter) blur(0px) saturate(1.5) brightness(1.1) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(1.8) brightness(1.15) contrast(1.05) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.35),
+    inset 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+  border: none !important;
+  color: #ffffff !important;
+  padding: 8px 14px !important;
+}
+
+.administrator-theme input[type="text"]:focus,
+.administrator-theme select:focus,
+.administrator-theme textarea:focus {
+  box-shadow: 
+    inset 0 0 0 1px rgba(245, 158, 11, 0.5),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.5),
+    0 0 15px rgba(245, 158, 11, 0.25) !important;
+  outline: none !important;
+}
+
+/* ==========================================================================
+   5. TABLES & ROW ACTIONS (LIQUID GLASS FORMAT)
+   ========================================================================== */
+.administrator-theme .table-responsive {
+  border-radius: 20px !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+  backdrop-filter: blur(12px) saturate(1.8) brightness(1.1) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.8) brightness(1.15) contrast(1.05) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.4),
+    inset 0 0 16px rgba(255, 255, 255, 0.08),
+    0 12px 36px rgba(0, 0, 0, 0.35) !important;
+  border: none !important;
+  overflow-x: auto !important;
+  max-width: 100% !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.administrator-theme thead th {
+  background: rgba(22, 26, 38, 0.75) !important;
+  color: var(--text-sub) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  padding: 8px 10px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.administrator-theme tbody td {
+  padding: 8px 10px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+  color: var(--text-body) !important;
+  font-size: 11.5px !important;
+  vertical-align: middle !important;
+}
+
+.administrator-theme tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.administrator-theme td.mono {
+  font-family: 'JetBrains Mono', monospace !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* Liquid Glass "View Detailed Performance" Action Button */
+.administrator-theme .btn-perf,
+.administrator-theme .btn-perf-action {
+  border-radius: 12px !important;
+  background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.45),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.75),
+    0 4px 16px rgba(217, 119, 6, 0.4) !important;
+  border: none !important;
+  color: #1a0f02 !important;
+  font-weight: 700 !important;
+  font-size: 12.5px !important;
+  padding: 9px 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  cursor: pointer !important;
+  transition: all 0.25s ease !important;
+}
+
+.administrator-theme .btn-perf:hover,
+.administrator-theme .btn-perf-action:hover {
+  background: linear-gradient(180deg, #fcd34d 0%, #f59e0b 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.85),
+    0 6px 22px rgba(217, 119, 6, 0.55) !important;
+  color: #0b0701 !important;
+}
+
+.administrator-theme .btn-perf svg,
+.administrator-theme .btn-perf-action svg {
+  color: #1a0f02 !important;
+  stroke: #1a0f02 !important;
+}
+
+/* Status Pills (Liquid Glass Capsule) */
+.administrator-theme .status-pill {
+  border-radius: 20px !important;
+  padding: 4px 13px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.3px !important;
+  backdrop-filter: blur(8px) !important;
+  border: none !important;
+}
+
+.administrator-theme .status-checked,
+.administrator-theme .status-evaluated {
+  background: rgba(16, 185, 129, 0.16) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(52, 211, 153, 0.4),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.35) !important;
+  color: #34d399 !important;
+}
+
+.administrator-theme .status-pending {
+  background: rgba(245, 158, 11, 0.16) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(245, 158, 11, 0.4),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.35) !important;
+  color: #fbbf24 !important;
+}
+
+.administrator-theme .status-allocated {
+  background: rgba(59, 130, 246, 0.16) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(96, 165, 250, 0.4),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.35) !important;
+  color: #60a5fa !important;
+}
+
+.administrator-theme .status-unallocated {
+  background: rgba(156, 163, 175, 0.16) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(156, 163, 175, 0.4),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.25) !important;
+  color: #d1d5db !important;
+}
+
+.administrator-theme .status-revaluation {
+  background: rgba(239, 68, 68, 0.16) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(248, 113, 113, 0.4),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.3) !important;
+  color: #f87171 !important;
+}
+
+/* ==========================================================================
+   6. NESTED MODALS & NESTED OPTIONS (LIQUID GLASS FORMAT & HARMONIZED COLOR)
+   ========================================================================== */
+.administrator-theme .modal-backdrop {
+  background: rgba(6, 8, 14, 0.8) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+/* Liquid Glass Modal Dialog */
+.administrator-theme .modal-dialog,
+/* Universal Admin Liquid Modal for Performance & Reallocate popups */
+.admin-liquid-modal {
+  border-radius: 20px !important;
+  max-height: 88vh !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.dark-mode .admin-liquid-modal,
+.administrator-theme.dark-mode .admin-liquid-modal,
+body.dark-mode .admin-liquid-modal {
+  background: rgba(14, 18, 28, 0.88) !important;
+  backdrop-filter: blur(28px) saturate(190%) brightness(1.1) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) brightness(1.1) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 24px rgba(245, 158, 11, 0.15),
+    0 28px 75px rgba(0, 0, 0, 0.75) !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.35) !important;
+  color: #ffffff !important;
+}
+
+.light-mode .admin-liquid-modal,
+body.light-mode .admin-liquid-modal,
+body:not(.dark-mode) .admin-liquid-modal {
+  background: rgba(248, 237, 218, 0.94) !important;
+  backdrop-filter: blur(28px) saturate(160%) brightness(1.02) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(160%) brightness(1.02) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.95),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 1),
+    inset 0 0 24px rgba(252, 108, 38, 0.12),
+    0 24px 64px rgba(6, 78, 59, 0.22) !important;
+  border: 1.5px solid rgba(252, 108, 38, 0.45) !important;
+  color: #064E3B !important;
+}
+
+.dark-mode .modal-header,
+.dark-mode .admin-modal-header {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-bottom: 1.5px solid rgba(245, 158, 11, 0.25) !important;
+}
+
+.light-mode .modal-header,
+.light-mode .admin-modal-header,
+body:not(.dark-mode) .admin-modal-header {
+  background: rgba(252, 108, 38, 0.1) !important;
+  border-bottom: 1.5px solid rgba(252, 108, 38, 0.35) !important;
+}
+
+.dark-mode .modal-footer,
+.dark-mode .admin-modal-footer {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-top: 1px solid rgba(245, 158, 11, 0.2) !important;
+}
+
+.light-mode .modal-footer,
+.light-mode .admin-modal-footer,
+body:not(.dark-mode) .admin-modal-footer {
+  background: rgba(252, 108, 38, 0.08) !important;
+  border-top: 1.5px solid rgba(252, 108, 38, 0.25) !important;
+}
+
+/* Nested 4 KPI stat cards inside Performance Modal */
+.dark-mode .admin-nested-stat-card,
+.administrator-theme .admin-nested-stat-card {
+  border-radius: 16px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
+.light-mode .admin-nested-stat-card,
+body:not(.dark-mode) .admin-nested-stat-card {
+  border-radius: 16px !important;
+  background: rgba(255, 255, 255, 0.75) !important;
+  border: 1.5px solid rgba(252, 108, 38, 0.35) !important;
+  box-shadow: 0 4px 14px rgba(6, 78, 59, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
+/* Nested KPI highlights (Average Marks & Revaluations Flagged) */
+.dark-mode .admin-nested-kpi-card,
+.administrator-theme .admin-nested-kpi-card {
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 3px 12px rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
+.light-mode .admin-nested-kpi-card,
+body:not(.dark-mode) .admin-nested-kpi-card {
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, 0.75) !important;
+  border: 1.5px solid rgba(252, 108, 38, 0.35) !important;
+  box-shadow: 0 4px 14px rgba(6, 78, 59, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
+/* Discrepancy Box inside Reallocate Modal */
+.administrator-theme .admin-discrepancy-box {
+  border-radius: 12px !important;
+  background: rgba(245, 158, 11, 0.08) !important;
+  backdrop-filter: blur(8px) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(245, 158, 11, 0.3),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.3) !important;
+  border: none !important;
+}
+
+/* ==========================================================================
+   7. ADMIN PANEL BOXES & ALL NESTED OPTIONS (LIQUID GLASS FORMAT)
+   ========================================================================== */
+.administrator-theme .allocation-bar,
+.administrator-theme .pagination-bar,
+.administrator-theme .card,
+.administrator-theme .liquid-glass:not(.stat-box):not(.modal-dialog) {
+  border-radius: 20px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  backdrop-filter: blur(14px) saturate(1.8) brightness(1.1) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.8) brightness(1.15) contrast(1.05) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 12px rgba(255, 255, 255, 0.2),
+    0 8px 32px rgba(0, 0, 0, 0.2) !important;
+  border: none !important;
+  color: #ffffff !important;
+}
+
+.administrator-theme .allocation-bar select {
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.35) !important;
+  border: none !important;
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   UNIVERSAL DARK MODE OVERRIDES (ADMINISTRATOR DASHBOARD COLOR IN UI)
+   Applies across ALL dashboards, windows, and modals when Dark Mode is active
+   ========================================================================== */
+.dark-mode .card,
+.dark-mode .stat-box,
+.dark-mode .liquid-glass:not(.modal-dialog),
+.dark-mode .login-card-container {
+  border-radius: 20px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  backdrop-filter: blur(14px) saturate(1.8) brightness(1.1) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.8) brightness(1.15) contrast(1.05) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 12px rgba(255, 255, 255, 0.2),
+    0 8px 32px rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid rgba(245, 158, 11, 0.18) !important;
+  color: #ffffff !important;
+}
+
+.dark-mode .card:hover,
+.dark-mode .stat-box:hover,
+.dark-mode .login-card-container:hover {
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.25),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.7),
+    inset 0 0 16px rgba(245, 158, 11, 0.25),
+    0 12px 36px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Dark mode inputs, selects, and textareas */
+.dark-mode .form-control,
+.dark-mode input[type="text"],
+.dark-mode input[type="password"],
+.dark-mode input[type="email"],
+.dark-mode input[type="file"],
+.dark-mode select,
+.dark-mode textarea {
+  border-radius: 12px !important;
+  background: rgba(15, 20, 32, 0.6) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  backdrop-filter: blur(8px) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.2) !important;
+}
+
+.dark-mode .form-control:focus,
+.dark-mode input:focus,
+.dark-mode select:focus,
+.dark-mode textarea:focus {
+  border-color: #f59e0b !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 0 0 3px rgba(245, 158, 11, 0.25) !important;
+  outline: none !important;
+}
+
+/* Dark mode tables */
+.dark-mode .table-responsive {
+  border-radius: 16px !important;
+  background: rgba(15, 20, 30, 0.45) !important;
+  backdrop-filter: blur(8px) saturate(1.5) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(1.5) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.35),
+    0 8px 32px rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(245, 158, 11, 0.18) !important;
+  overflow-x: auto !important;
+  max-width: 100% !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.dark-mode table thead th {
+  background: rgba(245, 158, 11, 0.08) !important;
+  color: #fbbf24 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+  padding: 8px 10px !important;
+  font-size: 10px !important;
+  letter-spacing: 0.4px !important;
+}
+
+.dark-mode table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  color: #ffffff !important;
+}
+
+.dark-mode table tbody tr:hover {
+  background: rgba(245, 158, 11, 0.08) !important;
+}
+
+.dark-mode table tbody td {
+  color: #ffffff !important;
+  padding: 8px 10px !important;
+  font-size: 11.5px !important;
+}
+
+/* Dark mode buttons */
+.dark-mode .btn-primary {
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  color: #090b10 !important;
+  font-weight: 700 !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.65),
+    0 4px 18px rgba(217, 119, 6, 0.4) !important;
+  border: none !important;
+}
+
+.dark-mode .btn-secondary,
+.dark-mode .btn-outline {
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  backdrop-filter: blur(8px) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.3) !important;
+}
+
+.dark-mode .btn-secondary:hover,
+.dark-mode .btn-outline:hover {
+  background: rgba(245, 158, 11, 0.15) !important;
+  border-color: #f59e0b !important;
+  color: #fbbf24 !important;
+}
+
+/* Dark mode Evaluation Studio Fullscreen */
+.dark-mode .evaluation-modal {
+  background-color: #090b10 !important;
+  background-image: 
+    radial-gradient(ellipse 65% 50% at 85% 18%, rgba(217, 119, 6, 0.28) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 55% at 12% 88%, rgba(180, 83, 9, 0.2) 0%, transparent 60%),
+    linear-gradient(180deg, #0a0d14 0%, #06080c 100%) !important;
+  color: #ffffff !important;
+}
+
+.dark-mode .evaluation-header {
+  background: rgba(17, 24, 39, 0.85) !important;
+  border-bottom: 1.5px solid rgba(245, 158, 11, 0.3) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+.dark-mode .eval-section-marking {
+  background: rgba(13, 17, 28, 0.75) !important;
+  border-right: 1.5px solid rgba(245, 158, 11, 0.25) !important;
+}
+
+.dark-mode .eval-badge {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #fbbf24 !important;
+  border: 1px solid #f59e0b !important;
+}
+
+.dark-mode .question-row {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 12px !important;
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.2) !important;
+}
+
+.dark-mode .eval-section-ai {
+  background: rgba(13, 17, 28, 0.75) !important;
+  border-left: 1.5px solid rgba(245, 158, 11, 0.25) !important;
+}
+
+.modal-backdrop,
+.dark-mode .modal-backdrop,
+.administrator-theme .modal-backdrop {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 999999 !important;
+  background: rgba(4, 7, 13, 0.78) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+}
+
+/* Dark mode modal dialog popups (Profile, Document Viewer, Reallocate, Performance) */
+.dark-mode .modal-dialog,
+.administrator-theme .modal-dialog,
+.dark-mode .modal-profile-dialog,
+.dark-mode .modal-doc-viewer,
+.dark-mode .admin-liquid-modal {
+  border-radius: 20px !important;
+  background: rgba(14, 18, 28, 0.88) !important;
+  backdrop-filter: blur(28px) saturate(190%) brightness(1.1) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) brightness(1.1) !important;
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 1.5px 1.5px 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 24px rgba(245, 158, 11, 0.15),
+    0 28px 75px rgba(0, 0, 0, 0.75) !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.35) !important;
+  color: #ffffff !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+}
+
+.dark-mode .modal-header,
+.administrator-theme .modal-header {
+  border-bottom: 1.5px solid rgba(245, 158, 11, 0.25) !important;
+  color: #ffffff !important;
+}
+
+.dark-mode .modal-header h3,
+.administrator-theme .modal-header h3 {
+  color: #ffffff !important;
+}
+
+/* ALL GREEN TEXT IN DARK MODE TURNED TO WHITE */
+.dark-mode h1,
+.dark-mode h2,
+.dark-mode h3,
+.dark-mode h4,
+.dark-mode h5,
+.dark-mode h6,
+.dark-mode p,
+.dark-mode span:not(.badge):not(.status-pill):not(.theme-toggle-label),
+.dark-mode label,
+.dark-mode td,
+.dark-mode th:not(.text-gold),
+.dark-mode li,
+.dark-mode strong,
+.dark-mode b,
+.dark-mode [style*="#064E3B"],
+.dark-mode [style*="color: #064E3B"],
+.dark-mode [style*="color:#064E3B"],
+.dark-mode [style*="#047857"],
+.dark-mode [style*="color: #047857"],
+.administrator-theme [style*="#064E3B"],
+.administrator-theme [style*="color: #064E3B"] {
+  color: #ffffff !important;
+}
+
+.dark-mode .server-status-pill {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+  color: #fbbf24 !important;
+}
+
+.dark-mode .server-status-pill span {
+  color: #fbbf24 !important;
+}

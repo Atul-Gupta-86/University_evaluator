@@ -115,20 +115,19 @@ export default function ProfileModal({
   return (
     <div className="modal-backdrop" onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
       <div 
-        className="modal-dialog liquid-glass" 
+        className="modal-dialog modal-profile-dialog" 
         onClick={(e) => e.stopPropagation()}
         style={{ 
           maxWidth: '520px', 
           width: '100%', 
-          borderRadius: '12px', 
-          boxShadow: '0 24px 60px rgba(6,78,59,0.25)', 
-          background: '#F8E7C9',
-          border: '2px solid #FC6C26',
-          padding: '32px 36px'
+          borderRadius: '20px', 
+          padding: '32px 36px',
+          backdropFilter: 'blur(28px)',
+          WebkitBackdropFilter: 'blur(28px)'
         }}
       >
         {/* Header */}
-        <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '18px', borderBottom: '1.5px solid #FC6C26', marginBottom: '22px' }}>
+        <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '18px', borderBottom: '1.5px solid var(--border-subtle)', marginBottom: '22px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div className="profile-avatar-circle" style={{ width: '48px', height: '48px', fontSize: '18px' }}>
               {activeUser.name ? activeUser.name.charAt(0).toUpperCase() : 'U'}
@@ -152,16 +151,16 @@ export default function ProfileModal({
 
         {/* Error Alert */}
         {error && (
-          <div style={{ background: 'rgba(252, 108, 38, 0.15)', border: '1.5px solid #FC6C26', color: '#064E3B', padding: '10px 14px', borderRadius: '6px', fontSize: '12.5px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <AlertCircle size={16} color="#FC6C26" style={{ flexShrink: 0 }} />
+          <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1.5px solid #ef4444', color: 'var(--text-main)', padding: '10px 14px', borderRadius: '8px', fontSize: '12.5px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <AlertCircle size={16} color="#ef4444" style={{ flexShrink: 0 }} />
             <span>{error}</span>
           </div>
         )}
 
         {/* Success Alert */}
         {successMsg && (
-          <div style={{ background: 'rgba(6, 78, 59, 0.12)', border: '1.5px solid #064E3B', color: '#064E3B', padding: '10px 14px', borderRadius: '6px', fontSize: '12.5px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <CheckCircle2 size={16} color="#064E3B" style={{ flexShrink: 0 }} />
+          <div style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1.5px solid #10b981', color: 'var(--text-main)', padding: '10px 14px', borderRadius: '8px', fontSize: '12.5px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />
             <span>{successMsg}</span>
           </div>
         )}
@@ -252,18 +251,18 @@ export default function ProfileModal({
             <h4 style={{ fontSize: '16px', fontWeight: 800, marginBottom: '6px' }}>Verify Security Code</h4>
             <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
               A 6-digit verification code was sent to: <br />
-              <strong style={{ color: '#FC6C26', fontFamily: 'monospace' }}>{userEmail}</strong>
+              <strong style={{ color: 'var(--accent-orange)', fontFamily: 'monospace' }}>{userEmail}</strong>
             </p>
 
             {emailSent ? (
-              <div style={{ background: 'rgba(6, 78, 59, 0.12)', border: '1.5px solid #064E3B', color: '#064E3B', padding: '8px 12px', borderRadius: '6px', fontSize: '11.5px', marginBottom: '16px' }}>
+              <div style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1.5px solid #10b981', color: 'var(--text-main)', padding: '8px 12px', borderRadius: '6px', fontSize: '11.5px', marginBottom: '16px' }}>
                 ✓ Delivered directly to your email inbox via SMTP.
               </div>
             ) : (
               otpPreview && (
-                <div style={{ background: 'rgba(252, 108, 38, 0.15)', border: '2px dashed #FC6C26', padding: '10px 14px', borderRadius: '6px', fontSize: '12px', marginBottom: '16px' }}>
-                  <div style={{ color: '#064E3B', fontSize: '11px', fontWeight: 700 }}>Fallback Console Code:</div>
-                  <strong style={{ fontSize: '20px', letterSpacing: '4px', fontFamily: 'monospace', color: '#064E3B' }}>{otpPreview}</strong>
+                <div style={{ background: 'var(--surface-glass-accent)', border: '2px dashed var(--border-strong)', padding: '10px 14px', borderRadius: '8px', fontSize: '12px', marginBottom: '16px' }}>
+                  <div style={{ color: 'var(--text-main)', fontSize: '11px', fontWeight: 700 }}>Fallback Console Code:</div>
+                  <strong style={{ fontSize: '20px', letterSpacing: '4px', fontFamily: 'monospace', color: 'var(--text-main)' }}>{otpPreview}</strong>
                 </div>
               )
             )}

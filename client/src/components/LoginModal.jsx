@@ -11,7 +11,9 @@ import {
   Eye, 
   EyeOff, 
   HelpCircle,
-  Sparkles
+  Sparkles,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { loginRequest, verifyLoginOtp, directLogin } from '../api';
 
@@ -22,7 +24,7 @@ const REGISTERED_ROLES_GUIDE = [
   { role: 'Evaluator / Teacher', email: 'teacher@gmail.com', pass: 'teacher123', scope: '3-Section grading studio, marks rubric & revaluation escalation' }
 ];
 
-export default function LoginModal({ onLoginSuccess, isModal = false, onClose = null }) {
+export default function LoginModal({ onLoginSuccess, isModal = false, onClose = null, themeMode = 'dark', onToggleTheme }) {
   // Credentials state - empty by default (NO HARDCODING)
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -160,7 +162,7 @@ export default function LoginModal({ onLoginSuccess, isModal = false, onClose = 
         {/* Portal Emblem & Title Header */}
         <div className="login-header-section">
           <div className="login-crest-badge">
-            <span style={{ fontSize: '20px', fontWeight: 800, color: '#064E3B' }}>MP</span>
+            <span style={{ fontSize: '20px', fontWeight: 800, color: 'inherit' }}>MP</span>
           </div>
           <div className="login-header-text">
             <div className="login-supertitle">GOVERNMENT OF MADHYA PRADESH</div>

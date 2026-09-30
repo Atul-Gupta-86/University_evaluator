@@ -138,7 +138,7 @@ export default function TeacherDashboard({
               <BookOpen size={16} color="#FC6C26" />
             </div>
           </div>
-          <span className="stat-box-value" style={{ color: '#064E3B' }}>
+          <span className="stat-box-value">
             {totalAllocated}
           </span>
           <span className="stat-box-subtext">Assigned for current cycle</span>
@@ -149,10 +149,10 @@ export default function TeacherDashboard({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span className="stat-box-label">Evaluated Scripts</span>
             <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(252, 108, 38, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CheckCircle2 size={16} color="#064E3B" />
+              <CheckCircle2 size={16} color="var(--accent-green)" />
             </div>
           </div>
-          <span className="stat-box-value" style={{ color: '#064E3B' }}>
+          <span className="stat-box-value">
             {evaluatedCount}
           </span>
           <span className="stat-box-subtext">Completed & marks locked</span>
@@ -166,7 +166,7 @@ export default function TeacherDashboard({
               <Clock size={16} color="#FC6C26" />
             </div>
           </div>
-          <span className="stat-box-value" style={{ color: '#064E3B' }}>
+          <span className="stat-box-value">
             {pendingCount}
           </span>
           <span className="stat-box-subtext">Awaiting grading studio</span>
@@ -192,7 +192,7 @@ export default function TeacherDashboard({
         <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '18px' }}>
           <div>
             <h3>Assigned Examination Scripts</h3>
-            <p style={{ margin: 0, fontSize: '12px', color: '#064E3B' }}>
+            <p style={{ margin: 0, fontSize: '12px' }}>
               Logged in Evaluator: <strong>{currentUser?.name || 'Authorized Teacher'}</strong> ({currentUser?.subject || 'All Subjects'})
             </p>
           </div>
@@ -252,7 +252,7 @@ export default function TeacherDashboard({
               <tbody>
                 {filteredList.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '48px 24px', color: '#064E3B' }}>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-muted)' }}>
                       {myStudents.length === 0 
                         ? 'No answer scripts have been allocated to your account yet.' 
                         : 'No candidate copies match the selected filter.'}
@@ -283,22 +283,22 @@ export default function TeacherDashboard({
                       </td>
                       <td>
                         {st.status === 'Evaluated' && st.totalScore !== undefined ? (
-                          <span style={{ fontWeight: 'bold', color: '#064E3B', fontSize: '14px' }}>
+                          <span style={{ fontWeight: 'bold', color: 'var(--text-main)', fontSize: '14px' }}>
                             {st.totalScore} / 100
                           </span>
                         ) : (
-                          <span style={{ color: '#064E3B', opacity: 0.6, fontSize: '12px' }}>—</span>
+                          <span style={{ color: 'var(--text-muted)', opacity: 0.6, fontSize: '12px' }}>—</span>
                         )}
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
+                        <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
                           {st.copyUrl && (
                             <button
                               className="btn btn-outline btn-sm"
                               onClick={() => onViewDocument(st.copyUrl, `Copy: ${st.name || st.studentName} (${st.enrollmentNumber || st.enrollment})`, { ...st, totalPages: getPageCount(st) })}
                               title="Inspect Script"
                             >
-                              <Eye size={14} /> Preview ({getPageCount(st)} {getPageCount(st) === 1 ? 'Page' : 'Pages'})
+                              <Eye size={13} /> Preview ({getPageCount(st)}P)
                             </button>
                           )}
 
@@ -344,13 +344,13 @@ export default function TeacherDashboard({
         <div className="modal-backdrop" onClick={() => setRevalReasonPrompt(null)}>
           <div className="modal-dialog liquid-glass" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px', padding: '28px 32px' }}>
             <div className="modal-header" style={{ marginBottom: '18px' }}>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#064E3B' }}>
-                <RotateCcw size={20} color="#FC6C26" /> Escalate to Revaluation
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)' }}>
+                <RotateCcw size={20} color="var(--accent-orange)" /> Escalate to Revaluation
               </h3>
               <button className="btn btn-secondary btn-sm btn-icon-only" onClick={() => setRevalReasonPrompt(null)}>✕</button>
             </div>
             <div>
-              <p style={{ fontSize: '13px', color: '#064E3B', marginBottom: '16px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-main)', marginBottom: '16px' }}>
                 You are about to refer candidate <strong>{revalReasonPrompt.name}</strong> ({revalReasonPrompt.enrollmentNumber}) for second-opinion revaluation or head scrutiny.
               </p>
               <form onSubmit={handleSendToRevalSubmit}>

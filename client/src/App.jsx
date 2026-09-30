@@ -11,6 +11,9 @@ import AdminDashboard from './components/dashboards/AdminDashboard';
 import UniversityDashboard from './components/dashboards/UniversityDashboard';
 import TeacherDashboard from './components/dashboards/TeacherDashboard';
 
+import './components/dashboards/AdministratorDashboard.css';
+import './components/dashboards/UniversityDashboard.css';
+
 import { 
   getMetrics, 
   getStudents, 
@@ -59,6 +62,29 @@ export default function App() {
 
   // Notification Toast state
   const [toast, setToast] = useState(null); // { message, type }
+
+  // Universal Theme Mode: 'dark' (Administrator UI) | 'light' (University Board UI)
+  const [themeMode, setThemeMode] = useState(() => {
+    const saved = localStorage.getItem('portal_theme_mode');
+    if (saved === 'dark' || saved === 'light') return saved;
+    return 'dark'; // Default to Administrator dark liquid glass
+  });
+
+  useEffect(() => {
+    localStorage.setItem('portal_theme_mode', themeMode);
+    document.documentElement.setAttribute('data-theme', themeMode);
+    if (themeMode === 'dark') {
+      document.body.classList.add('dark-mode', 'administrator-theme');
+      document.body.classList.remove('light-mode', 'university-theme');
+    } else {
+      document.body.classList.add('light-mode', 'university-theme');
+      document.body.classList.remove('dark-mode', 'administrator-theme');
+    }
+  }, [themeMode]);
+
+  const toggleTheme = () => {
+    setThemeMode(prev => prev === 'dark' ? 'light' : 'dark');
+  };
 
   const showNotification = (message, type = 'info') => {
     setToast({ message, type });
@@ -164,6 +190,8 @@ export default function App() {
           onLoginSuccess={handleLoginSuccess}
           onNotify={showNotification}
           isModal={false}
+          themeMode={themeMode}
+          onToggleTheme={toggleTheme}
         />
       );
     }
@@ -200,6 +228,7 @@ export default function App() {
           currentUser={currentUser}
           students={students}
           teachers={teachers}
+          departments={departments}
           subjects={subjects}
           references={references}
           metrics={metrics}
@@ -255,14 +284,18 @@ export default function App() {
     return (
       <div className="card" style={{ padding: '32px', textAlign: 'center' }}>
         <h3>Unrecognized Role Portal</h3>
-        <p style={{ color: '#064E3B' }}>Role "{currentUser.role}" does not match an active dashboard layout.</p>
+        <p style={{ color: 'var(--text-muted)' }}>Role "{currentUser.role}" does not match an active dashboard layout.</p>
         <button className="btn btn-outline" onClick={handleLogout}>Switch Account</button>
       </div>
     );
   };
 
+  const role = currentUser?.role?.toLowerCase() || '';
+  const isAdministrator = role === 'administrator' || role === 'admin' || role === 'admin cell';
+  const isUniversity = role === 'university' || role === 'university board' || role === 'board';
+
   return (
-    <div className="app-container">
+    <div className={`app-container theme-${themeMode} ${themeMode === 'dark' ? 'administrator-theme dark-mode' : 'university-theme light-mode'}`}>
       {/* Toast Notification Container */}
       {toast && (
         <div 
@@ -273,10 +306,10 @@ export default function App() {
             right: '24px',
             zIndex: 99999,
             padding: '14px 20px',
-            background: '#FC6C26',
-            color: '#064E3B',
-            borderRadius: '8px',
-            boxShadow: '0 10px 25px rgba(6, 78, 59, 0.25)',
+            background: 'var(--accent-orange)',
+            color: 'var(--text-main)',
+            borderRadius: '12px',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.25)',
             fontSize: '13.5px',
             fontWeight: 700,
             display: 'flex',
@@ -288,7 +321,7 @@ export default function App() {
           <span>{toast.message}</span>
           <button 
             onClick={() => setToast(null)}
-            style={{ background: 'transparent', border: 'none', color: '#064E3B', cursor: 'pointer', padding: 0, marginLeft: '8px', fontWeight: 'bold' }}
+            style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, marginLeft: '8px', fontWeight: 'bold' }}
           >
             ✕
           </button>
@@ -302,6 +335,8 @@ export default function App() {
         onOpenLogin={() => setShowLoginModal(true)}
         onOpenProfile={() => setShowProfileModal(true)}
         onLogout={handleLogout}
+        themeMode={themeMode}
+        onToggleTheme={toggleTheme}
       />
 
       {/* Main Page Body */}
@@ -326,6 +361,8 @@ export default function App() {
           onLoginSuccess={handleLoginSuccess}
           onNotify={showNotification}
           isModal={true}
+          themeMode={themeMode}
+          onToggleTheme={toggleTheme}
         />
       )}
 

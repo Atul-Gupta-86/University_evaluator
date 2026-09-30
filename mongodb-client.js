@@ -204,6 +204,7 @@ class MongoDBHandler {
       email: cleanEmail,
       password: teacherData.password,
       department: teacherData.department ? teacherData.department.trim() : 'Academic Department',
+      subject: teacherData.subject ? teacherData.subject.trim() : null,
       role: 'teacher',
       maxLoad: Number(teacherData.maxLoad) || 100,
       createdAt: teacherData.createdAt || new Date().toISOString(),
@@ -771,7 +772,8 @@ class MongoDBHandler {
     const cleanRef = {
       id: refData.id || `ref_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       subjectCode: refData.subjectCode.trim().toUpperCase(),
-      subjectTitle: refData.subjectTitle.trim(),
+      subjectTitle: (refData.subjectTitle || refData.subjectName || refData.subjectCode || 'Course Material').trim(),
+      department: (refData.department || 'Academic Department').trim(),
       examSession: refData.examSession || 'May-June 2026',
       fileName: refData.fileName || `${refData.subjectCode}_Model_Solution.pdf`,
       fileSize: refData.fileSize || '2.1 MB',

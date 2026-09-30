@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './UniversityDashboard.css';
 import { 
   UploadCloud, 
   BookOpen, 
@@ -36,6 +37,7 @@ export default function UniversityDashboard({
   // Intake form state
   const [enrollmentNumber, setEnrollmentNumber] = useState('');
   const [studentName, setStudentName] = useState('');
+  const [selectedDept, setSelectedDept] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [academicYear, setAcademicYear] = useState('2025-2026');
   const [examSession, setExamSession] = useState('December');
@@ -46,8 +48,6 @@ export default function UniversityDashboard({
   // Department management state
   const [deptCode, setDeptCode] = useState('');
   const [deptName, setDeptName] = useState('');
-  const [deptHead, setDeptHead] = useState('');
-  const [deptEmail, setDeptEmail] = useState('');
   const [isAddingDept, setIsAddingDept] = useState(false);
 
   // Subject management state
@@ -74,8 +74,13 @@ export default function UniversityDashboard({
       return;
     }
 
+    if (!selectedDept) {
+      onNotify('Validation Error: Academic Department is mandatory. Please select a department.', 'warning');
+      return;
+    }
+
     if (!enrollmentNumber.trim() || !studentName.trim() || !selectedSubject) {
-      onNotify('Please fill in all mandatory fields (Enrollment No, Name, and Subject).', 'warning');
+      onNotify('Please fill in all mandatory fields (Enrollment No, Name, Department, and Subject).', 'warning');
       return;
     }
 
@@ -103,10 +108,11 @@ export default function UniversityDashboard({
       const isImg = selectedFile?.type?.startsWith('image/') || /\.(png|jpg|jpeg|webp)$/i.test(selectedFile.name);
       const computedPages = isImg ? 1 : (Number(uploadRes.totalPages) || (uploadRes.pages ? uploadRes.pages.length : 1));
 
-      setUploadProgress('Archiving candidate record in MongoDB Database...');
+      setUploadProgress('Archiving candidate record...');
       await createStudent({
         enrollmentNumber: enrollmentNumber.trim(),
         name: studentName.trim(),
+        department: selectedDept,
         subject: selectedSubject,
         academicYear,
         examSession,
@@ -121,6 +127,8 @@ export default function UniversityDashboard({
       // Reset form
       setEnrollmentNumber('');
       setStudentName('');
+      setSelectedDept('');
+      setSelectedSubject('');
       setSelectedFile(null);
       const fileInput = document.getElementById('scanned-copy-input');
       if (fileInput) fileInput.value = '';
@@ -134,7 +142,7 @@ export default function UniversityDashboard({
     }
   };
 
-  // Add Department - with mandatory Head of Department and Official Email
+  // Add Department
   const handleAddDeptSubmit = async (e) => {
     e.preventDefault();
     if (!deptCode.trim()) {
@@ -145,29 +153,17 @@ export default function UniversityDashboard({
       onNotify('Department Name is mandatory.', 'warning');
       return;
     }
-    if (!deptHead.trim()) {
-      onNotify('Head of Department (HoD) is mandatory. Please enter HoD name.', 'warning');
-      return;
-    }
-    if (!deptEmail.trim()) {
-      onNotify('Official HoD Email is mandatory. Please enter a valid email address.', 'warning');
-      return;
-    }
 
     try {
       setIsAddingDept(true);
       await addDepartment({
         code: deptCode.trim().toUpperCase(),
         name: deptName.trim(),
-        head: deptHead.trim(),
-        email: deptEmail.trim().toLowerCase(),
         status: 'Active'
       });
-      onNotify(`Academic department "${deptName}" created and stored in MongoDB successfully.`, 'success');
+      onNotify(`Academic department "${deptName}" created successfully.`, 'success');
       setDeptCode('');
       setDeptName('');
-      setDeptHead('');
-      setDeptEmail('');
       onRefresh();
     } catch (err) {
       onNotify(`Failed to create department: ${err.message}`, 'error');
@@ -256,7 +252,7 @@ export default function UniversityDashboard({
   };
 
   return (
-    <div className="tab-pane active">
+    <div className="tab-pane active university-dashboard-view">
       {/* Sub Tabs Navigation */}
       <div className="section-header" style={{ marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '18px' }}>
         <div>
@@ -322,20 +318,60 @@ export default function UniversityDashboard({
                 </div>
 
                 <div className="form-group">
-                  <label>Examination Subject <span style={{ color: '#FC6C26' }}>*</span></label>
+                  <label>Academic Department <span style={{ color: '#FC6C26' }}>* (Mandatory)</span></label>
+                  <select
+                    className="form-control"
+                    value={selectedDept}
+                    onChange={(e) => {
+                      setSelectedDept(e.target.value);
+                      setSelectedSubject('');
+                    }}
+                    required
+                    style={{ background: 'var(--bg-card, #111827)', color: 'var(--text-main, #ffffff)' }}
+                  >
+                    <option value="" style={{ background: '#111827', color: '#ffffff' }}>-- Select Academic Department --</option>
+                    {departments.map((d) => (
+                      <option key={d.code || d.name} value={d.name || d.code} style={{ background: '#111827', color: '#ffffff' }}>
+                        {d.code ? `[${d.code}] ` : ''}{d.name}
+                      </option>
+                    ))}
+                  </select>
+                  {departments.length === 0 && (
+                    <small style={{ color: '#FC6C26', display: 'block', marginTop: '4px', fontSize: '11px' }}>
+                      ⚠️ No departments registered. Add departments in Departments tab first.
+                    </small>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label>Examination Subject <span style={{ color: '#FC6C26' }}>* (Mandatory)</span></label>
                   <select
                     className="form-control"
                     value={selectedSubject}
                     onChange={(e) => setSelectedSubject(e.target.value)}
                     required
+                    disabled={!selectedDept}
+                    style={{ background: 'var(--bg-card, #111827)', color: 'var(--text-main, #ffffff)' }}
                   >
-                    <option value="">-- Select Subject from Curriculum --</option>
-                    {subjects.map((sub) => (
-                      <option key={sub.code || sub._id} value={sub.name}>
+                    <option value="" style={{ background: '#111827', color: '#ffffff' }}>{selectedDept ? '-- Select Subject from Curriculum --' : '-- Choose Department First --'}</option>
+                    {subjects.filter(sub => {
+                      if (!selectedDept) return false;
+                      const deptObj = departments.find(d => d.name === selectedDept || d.code === selectedDept);
+                      return sub.department === selectedDept || (deptObj && (sub.department === deptObj.name || sub.department === deptObj.code));
+                    }).map((sub) => (
+                      <option key={sub.code || sub._id} value={sub.name} style={{ background: '#111827', color: '#ffffff' }}>
                         {sub.code ? `[${sub.code}] ` : ''}{sub.name}
                       </option>
                     ))}
                   </select>
+                  {selectedDept && subjects.filter(sub => {
+                    const deptObj = departments.find(d => d.name === selectedDept || d.code === selectedDept);
+                    return sub.department === selectedDept || (deptObj && (sub.department === deptObj.name || sub.department === deptObj.code));
+                  }).length === 0 && (
+                    <small style={{ color: '#FC6C26', display: 'block', marginTop: '4px', fontSize: '11px' }}>
+                      ⚠️ No subjects found under this department. Please register subjects in Curriculum tab first.
+                    </small>
+                  )}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -346,13 +382,14 @@ export default function UniversityDashboard({
                       value={academicYear}
                       onChange={(e) => setAcademicYear(e.target.value)}
                       required
+                      style={{ background: 'var(--bg-card, #111827)', color: 'var(--text-main, #ffffff)' }}
                     >
-                      <option value="">-- Select Academic Year --</option>
-                      <option value="2026-2027">2026-2027</option>
-                      <option value="2025-2026">2025-2026</option>
-                      <option value="2024-2025">2024-2025</option>
-                      <option value="2023-2024">2023-2024</option>
-                      <option value="2022-2023">2022-2023</option>
+                      <option value="" style={{ background: '#111827', color: '#ffffff' }}>-- Select Academic Year --</option>
+                      <option value="2026-2027" style={{ background: '#111827', color: '#ffffff' }}>2026-2027</option>
+                      <option value="2025-2026" style={{ background: '#111827', color: '#ffffff' }}>2025-2026</option>
+                      <option value="2024-2025" style={{ background: '#111827', color: '#ffffff' }}>2024-2025</option>
+                      <option value="2023-2024" style={{ background: '#111827', color: '#ffffff' }}>2023-2024</option>
+                      <option value="2022-2023" style={{ background: '#111827', color: '#ffffff' }}>2022-2023</option>
                     </select>
                   </div>
                   <div className="form-group">
@@ -362,20 +399,21 @@ export default function UniversityDashboard({
                       value={examSession}
                       onChange={(e) => setExamSession(e.target.value)}
                       required
+                      style={{ background: 'var(--bg-card, #111827)', color: 'var(--text-main, #ffffff)' }}
                     >
-                      <option value="">-- Select Session Month --</option>
-                      <option value="January">January</option>
-                      <option value="February">February</option>
-                      <option value="March">March</option>
-                      <option value="April">April</option>
-                      <option value="May">May</option>
-                      <option value="June">June</option>
-                      <option value="July">July</option>
-                      <option value="August">August</option>
-                      <option value="September">September</option>
-                      <option value="October">October</option>
-                      <option value="November">November</option>
-                      <option value="December">December</option>
+                      <option value="" style={{ background: '#111827', color: '#ffffff' }}>-- Select Session Month --</option>
+                      <option value="January" style={{ background: '#111827', color: '#ffffff' }}>January</option>
+                      <option value="February" style={{ background: '#111827', color: '#ffffff' }}>February</option>
+                      <option value="March" style={{ background: '#111827', color: '#ffffff' }}>March</option>
+                      <option value="April" style={{ background: '#111827', color: '#ffffff' }}>April</option>
+                      <option value="May" style={{ background: '#111827', color: '#ffffff' }}>May</option>
+                      <option value="June" style={{ background: '#111827', color: '#ffffff' }}>June</option>
+                      <option value="July" style={{ background: '#111827', color: '#ffffff' }}>July</option>
+                      <option value="August" style={{ background: '#111827', color: '#ffffff' }}>August</option>
+                      <option value="September" style={{ background: '#111827', color: '#ffffff' }}>September</option>
+                      <option value="October" style={{ background: '#111827', color: '#ffffff' }}>October</option>
+                      <option value="November" style={{ background: '#111827', color: '#ffffff' }}>November</option>
+                      <option value="December" style={{ background: '#111827', color: '#ffffff' }}>December</option>
                     </select>
                   </div>
                 </div>
@@ -384,7 +422,7 @@ export default function UniversityDashboard({
                 <div className="form-group">
                   <label style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>Scanned Answer Sheet <span style={{ color: '#FC6C26' }}>* (Mandatory)</span></span>
-                    {selectedFile && <span style={{ fontSize: '11px', color: '#064E3B', fontWeight: 'bold' }}>✓ Selected</span>}
+                    {selectedFile && <span style={{ fontSize: '11px', color: 'var(--accent-green)', fontWeight: 'bold' }}>✓ Selected</span>}
                   </label>
                   <input
                     id="scanned-copy-input"
@@ -394,13 +432,13 @@ export default function UniversityDashboard({
                     onChange={handleFileChange}
                     required
                   />
-                  <div style={{ fontSize: '11px', color: '#064E3B', opacity: 0.8, marginTop: '4px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
                     Accepted formats: High-res PDF, PNG, JPG scans (Up to 25MB)
                   </div>
                 </div>
 
                 {uploadProgress && (
-                  <div style={{ padding: '12px 16px', background: 'rgba(252, 108, 38, 0.15)', border: '1px solid #FC6C26', borderRadius: '8px', color: '#064E3B', fontSize: '12px', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ padding: '12px 16px', background: 'var(--surface-glass-accent)', border: '1px solid var(--border-strong)', borderRadius: '8px', color: 'var(--text-main)', fontSize: '12px', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <RefreshCw size={14} className="spin-slow" /> {uploadProgress}
                   </div>
                 )}
@@ -428,7 +466,7 @@ export default function UniversityDashboard({
                 <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <FileText size={20} color="#FC6C26" /> Ingested Scripts Repository
                 </h3>
-                <p style={{ margin: 0, fontSize: '12px', color: '#064E3B' }}>
+                <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>
                   {filteredStudents.length} copies logged for current examination cycle
                 </p>
               </div>
@@ -465,7 +503,7 @@ export default function UniversityDashboard({
                   <tbody>
                     {filteredStudents.length === 0 ? (
                       <tr>
-                        <td colSpan={5} style={{ textAlign: 'center', padding: '48px 24px', color: '#064E3B' }}>
+                        <td colSpan={5} style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-muted)' }}>
                           No answer copies match the criteria or repository is empty.
                         </td>
                       </tr>
@@ -494,12 +532,12 @@ export default function UniversityDashboard({
                                   className="btn btn-outline btn-sm"
                                   onClick={() => onViewDocument(fileUrl, `Candidate Copy: ${st.name} (${st.enrollmentNumber})`, { ...st, totalPages: getPageCount(st) })}
                                   title="Inspect Digital Scan"
-                                  style={{ color: '#064E3B', borderColor: '#FC6C26' }}
+                                  style={{ color: 'var(--text-main)', borderColor: 'var(--border-strong)' }}
                                 >
-                                  <Eye size={14} /> Inspect Script ({getPageCount(st)} {getPageCount(st) === 1 ? 'Page' : 'Pages'})
+                                  <Eye size={12} /> Inspect ({getPageCount(st)}P)
                                 </button>
                               ) : (
-                                <span style={{ fontSize: '11px', color: '#064E3B', opacity: 0.6 }}>No File Attached</span>
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)', opacity: 0.6 }}>No File Attached</span>
                               )}
                             </td>
                           </tr>
@@ -516,7 +554,7 @@ export default function UniversityDashboard({
 
       {/* TAB 2: ACADEMIC DEPARTMENTS MANAGEMENT */}
       {activeTab === 'departments' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 380px) 1fr', gap: '28px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 300px) minmax(0, 1fr)', gap: '16px' }}>
           {/* Add Department Form */}
           <div className="card" style={{ height: 'fit-content' }}>
             <div className="card-header">
@@ -550,37 +588,13 @@ export default function UniversityDashboard({
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Head of Department (HoD) <span style={{ color: '#FC6C26' }}>*</span></label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="e.g. Dr. A. K. Sharma, Ph.D"
-                    value={deptHead}
-                    onChange={(e) => setDeptHead(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Official HoD Email <span style={{ color: '#FC6C26' }}>*</span></label>
-                  <input
-                    type="email"
-                    className="form-control"
-                    placeholder="e.g. hod.cse@university.ac.in"
-                    value={deptEmail}
-                    onChange={(e) => setDeptEmail(e.target.value)}
-                    required
-                  />
-                </div>
-
                 <button 
                   type="submit" 
                   className="btn btn-primary" 
                   style={{ width: '100%', justifyContent: 'center', marginTop: '16px' }}
                   disabled={isAddingDept}
                 >
-                  <Plus size={18} /> Register Department to MongoDB
+                  <Plus size={18} /> Register Department
                 </button>
               </form>
             </div>
@@ -593,8 +607,8 @@ export default function UniversityDashboard({
                 <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Building2 size={20} color="#FC6C26" /> Recognized Academic Departments
                 </h3>
-                <p style={{ margin: 0, fontSize: '12px', color: '#064E3B' }}>
-                  {departments.length} recognized departments stored in MongoDB Atlas with designated HoD and Official Email
+                <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>
+                  {departments.length} recognized academic departments registered
                 </p>
               </div>
               <button className="btn btn-outline btn-sm" onClick={onRefresh}>
@@ -608,8 +622,6 @@ export default function UniversityDashboard({
                     <tr>
                       <th>Department Code</th>
                       <th>Department Name</th>
-                      <th>Head of Department (HoD)</th>
-                      <th>Official Email</th>
                       <th>Status</th>
                       <th style={{ textAlign: 'right' }}>Actions</th>
                     </tr>
@@ -617,33 +629,23 @@ export default function UniversityDashboard({
                   <tbody>
                     {departments.length === 0 ? (
                       <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', padding: '48px 24px', color: '#064E3B' }}>
+                        <td colSpan={4} style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-muted)' }}>
                           No departments defined. Add your first department using the form on the left.
                         </td>
                       </tr>
                     ) : (
                       departments.map((dept) => (
                         <tr key={dept.code || dept.id || dept.name}>
-                          <td style={{ fontWeight: 'bold', fontFamily: 'monospace', color: '#064E3B' }}>
-                            <span style={{ padding: '3px 8px', background: 'rgba(252, 108, 38, 0.15)', borderRadius: '4px', border: '1px solid #FC6C26', color: '#064E3B' }}>
+                          <td style={{ fontWeight: 'bold', fontFamily: 'monospace' }}>
+                            <span style={{ padding: '3px 8px', background: 'rgba(252, 108, 38, 0.15)', borderRadius: '4px', border: '1px solid var(--border-strong)', color: 'var(--text-main)' }}>
                               {dept.code || 'N/A'}
                             </span>
                           </td>
                           <td>
-                            <div style={{ fontWeight: 600, color: '#064E3B' }}>{dept.name}</div>
+                            <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{dept.name}</div>
                           </td>
                           <td>
-                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#064E3B' }}>
-                              👤 {dept.head || 'Not Assigned'}
-                            </div>
-                          </td>
-                          <td>
-                            <div style={{ fontSize: '12px', color: '#064E3B', fontFamily: 'monospace' }}>
-                              ✉️ {dept.email || 'N/A'}
-                            </div>
-                          </td>
-                          <td>
-                            <span className="badge badge-success" style={{ fontSize: '11px', color: '#064E3B' }}>
+                            <span className="badge badge-success" style={{ fontSize: '11px' }}>
                               {dept.status || 'Active'}
                             </span>
                           </td>
@@ -670,7 +672,7 @@ export default function UniversityDashboard({
 
       {/* TAB 3: SUBJECT MANAGEMENT */}
       {activeTab === 'subjects' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 380px) 1fr', gap: '28px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 300px) minmax(0, 1fr)', gap: '16px' }}>
           {/* Add Subject Form */}
           <div className="card" style={{ height: 'fit-content' }}>
             <div className="card-header">
@@ -711,10 +713,11 @@ export default function UniversityDashboard({
                     value={newSubDept}
                     onChange={(e) => setNewSubDept(e.target.value)}
                     required
+                    style={{ background: 'var(--bg-card, #111827)', color: 'var(--text-main, #ffffff)' }}
                   >
-                    <option value="">-- Select Academic Department (Required) --</option>
+                    <option value="" style={{ background: '#111827', color: '#ffffff' }}>-- Select Academic Department (Required) --</option>
                     {departments.map((d) => (
-                      <option key={d.code || d.name} value={d.name}>
+                      <option key={d.code || d.name} value={d.name} style={{ background: '#111827', color: '#ffffff' }}>
                         {d.code ? `[${d.code}] ` : ''}{d.name}
                       </option>
                     ))}
@@ -743,7 +746,7 @@ export default function UniversityDashboard({
             <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h3>Authorized Examination Curriculum</h3>
-                <p style={{ margin: 0, fontSize: '12px', color: '#064E3B' }}>Active subjects eligible for answer script digitization and allocation</p>
+                <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Active subjects eligible for answer script digitization and allocation</p>
               </div>
               <button className="btn btn-outline btn-sm" onClick={onRefresh}>
                 <RefreshCw size={14} /> Refresh
@@ -763,14 +766,14 @@ export default function UniversityDashboard({
                   <tbody>
                     {subjects.length === 0 ? (
                       <tr>
-                        <td colSpan={4} style={{ textAlign: 'center', padding: '48px 24px', color: '#064E3B' }}>
+                        <td colSpan={4} style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-muted)' }}>
                           No subjects defined. Add your first subject using the form on the left.
                         </td>
                       </tr>
                     ) : (
                       subjects.map((sub) => (
                         <tr key={sub.code || sub._id}>
-                          <td style={{ fontWeight: 'bold', fontFamily: 'monospace', color: '#064E3B' }}>
+                          <td style={{ fontWeight: 'bold', fontFamily: 'monospace', color: 'var(--text-main)' }}>
                             {sub.code || 'N/A'}
                           </td>
                           <td style={{ fontWeight: 600 }}>{sub.name}</td>

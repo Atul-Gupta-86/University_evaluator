@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { RotateCcw, Users, UserCheck, CheckCircle2, Search, Eye, UserPlus, CheckSquare, BarChart2, X } from 'lucide-react';
+import { RotateCcw, Users, UserCheck, CheckCircle2, Search, Eye, UserPlus, CheckSquare, BarChart2, X, ChevronRight } from 'lucide-react';
 import { resolveRevaluation } from '../../api';
+import './AdministratorDashboard.css';
 
 export default function AdministratorDashboard({ 
   students = [], 
@@ -11,7 +12,7 @@ export default function AdministratorDashboard({
   onViewDocument, 
   onRefresh 
 }) {
-  const [activeTab, setActiveTab] = useState('revaluation'); // 'revaluation' | 'students' | 'teachers'
+  const [activeTab, setActiveTab] = useState('teachers'); // 'revaluation' | 'students' | 'teachers'
   const [studentFilter, setStudentFilter] = useState('all'); // 'all' | 'allocated' | 'evaluated' | 'not_allocated'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTeacherForPerf, setSelectedTeacherForPerf] = useState(null);
@@ -160,7 +161,7 @@ export default function AdministratorDashboard({
                   <th>Flagged By</th>
                   <th>Discrepancy Reason</th>
                   <th>Preliminary Marks</th>
-                  <th style={{ textAlign: 'center', minWidth: '280px' }}>Administrative Action Options</th>
+                  <th style={{ textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -177,45 +178,42 @@ export default function AdministratorDashboard({
                       <td style={{ fontWeight: 600 }}>{s.studentName}</td>
                       <td><span style={{ fontWeight: 600 }}>{s.subjectCode}</span>: {s.subjectTitle}</td>
                       <td>{s.revaluation?.teacherEmail || s.allocatedTeacherName || 'Evaluator'}</td>
-                      <td style={{ color: 'var(--accent-red)', maxWidth: '240px', fontSize: '12px' }}>
+                      <td style={{ color: 'var(--accent-red)', maxWidth: '240px', fontSize: '11px' }}>
                         {s.revaluation?.reason || 'Discrepancy noted during grading.'}
                       </td>
                       <td style={{ fontWeight: 700 }}>
                         {s.evaluation ? `${s.evaluation.totalMarksAwarded} / ${s.evaluation.maxPossibleMarks}` : 'N/A'}
                       </td>
                       <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                          {/* OPTION 0: Inspect Script directly in Revaluation Queue */}
+                        <div style={{ display: 'flex', gap: '5px', justifyContent: 'center', flexWrap: 'wrap' }}>
                           <button 
                             className="btn btn-outline btn-sm"
                             onClick={() => handleInspect(s)}
                             title="Inspect candidate answer copy"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                           >
-                            <Eye size={13} />
-                            Inspect Script ({getPageCount(s)} {getPageCount(s) === 1 ? 'Page' : 'Pages'})
+                            <Eye size={12} />
+                            Inspect ({getPageCount(s)}P)
                           </button>
 
-                          {/* OPTION 1: Allocate to new teacher */}
                           <button 
                             className="btn btn-secondary btn-sm"
                             onClick={() => handleOpenReallocate(s)}
                             title="Reallocate script to a different evaluator teacher"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                           >
-                            <UserPlus size={13} />
-                            Allocate to New Teacher
+                            <UserPlus size={12} />
+                            Reallocate
                           </button>
 
-                          {/* OPTION 2: Check by Administrator himself (KEPT as requested!) */}
                           <button 
                             className="btn btn-primary btn-sm"
                             onClick={() => onEvaluateStudent(s)}
                             title="Open 3-section studio to evaluate directly as Administrator"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                           >
-                            <CheckSquare size={13} />
-                            Check by Myself
+                            <CheckSquare size={12} />
+                            Check Myself
                           </button>
                         </div>
                       </td>
@@ -356,7 +354,7 @@ export default function AdministratorDashboard({
                   <th>Allocated Copies</th>
                   <th>Evaluated Copies</th>
                   <th>Pending Copies</th>
-                  <th>Completion Rate</th>
+                  <th>Completion Date</th>
                   <th style={{ textAlign: 'center' }}>Detailed Performance</th>
                 </tr>
               </thead>
@@ -378,19 +376,18 @@ export default function AdministratorDashboard({
                       <td>{t.department}</td>
                       <td className="mono" style={{ fontSize: '12px' }}>{t.email}</td>
                       <td style={{ fontWeight: 700 }}>{teacherStudents.length}</td>
-                      <td style={{ color: 'var(--accent-green)', fontWeight: 700 }}>{checkedCount}</td>
-                      <td style={{ color: 'var(--accent-amber)', fontWeight: 700 }}>{pendingCount}</td>
+                      <td style={{ color: '#34d399', fontWeight: 700 }}>{checkedCount}</td>
+                      <td style={{ color: '#fbbf24', fontWeight: 700 }}>{pendingCount}</td>
                       <td>
-                        <span className="status-pill status-checked">{rate}% Evaluated</span>
+                        <span className="status-pill status-checked">{rate > 0 ? `${rate}% Done` : 'In Progress'}</span>
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <button 
-                          className="btn btn-primary btn-sm" 
+                          className="btn-perf" 
                           onClick={() => setSelectedTeacherForPerf(t)}
                           title={`View comprehensive performance analytics for ${t.name}`}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                         >
-                          <BarChart2 size={13} /> View Detailed Performance
+                          <ChevronRight size={14} /> View Detailed Performance
                         </button>
                       </td>
                     </tr>
@@ -405,7 +402,7 @@ export default function AdministratorDashboard({
       {/* Reallocate Script Modal */}
       {reallocStudent && (
         <div className="modal-backdrop" onClick={() => setReallocStudent(null)}>
-          <div className="modal-dialog liquid-glass" onClick={(e) => e.stopPropagation()} style={{ padding: '28px 32px' }}>
+          <div className="modal-dialog admin-liquid-modal" onClick={(e) => e.stopPropagation()} style={{ padding: '28px 32px' }}>
             <div className="modal-header" style={{ marginBottom: '20px' }}>
               <h3>Reallocate Script: {reallocStudent.enrollmentNumber || reallocStudent.enrollment}</h3>
               <button className="btn btn-secondary btn-sm btn-icon-only" onClick={() => setReallocStudent(null)}>
@@ -413,11 +410,11 @@ export default function AdministratorDashboard({
               </button>
             </div>
 
-            <div style={{ background: 'rgba(232, 224, 202, 0.4)', padding: '12px', borderRadius: '4px', marginBottom: '14px' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--accent-red)', marginBottom: '4px' }}>
+            <div className="admin-discrepancy-box" style={{ padding: '12px 16px', borderRadius: '8px', marginBottom: '14px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#f87171', marginBottom: '4px' }}>
                 Reported Discrepancy Reason
               </div>
-              <div style={{ fontSize: '13px' }}>
+              <div style={{ fontSize: '13px', color: 'rgba(235, 220, 210, 0.9)' }}>
                 {reallocStudent.revaluation?.reason || 'Discrepancy noted during scrutiny.'}
               </div>
             </div>
@@ -481,33 +478,31 @@ export default function AdministratorDashboard({
         return (
           <div className="modal-backdrop" onClick={() => setSelectedTeacherForPerf(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', zIndex: 99999 }}>
             <div 
-              className="modal-dialog liquid-glass" 
+              className="modal-dialog admin-liquid-modal" 
               onClick={(e) => e.stopPropagation()}
               style={{ 
-                maxWidth: '750px', 
-                width: '100%', 
-                maxHeight: '85vh', 
+                maxWidth: '780px', 
+                width: '92vw', 
+                maxHeight: '88vh', 
                 padding: 0,
                 overflow: 'hidden', 
                 display: 'flex', 
                 flexDirection: 'column',
-                background: '#F8E7C9',
-                border: '2px solid #FC6C26',
-                borderRadius: '12px',
-                boxShadow: '0 20px 45px rgba(6,78,59,0.2)'
+                backdropFilter: 'blur(28px)',
+                WebkitBackdropFilter: 'blur(28px)'
               }}
             >
               {/* Modal Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 24px', borderBottom: '1.5px solid #FC6C26', background: 'rgba(252, 108, 38, 0.12)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#FC6C26', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#064E3B' }}>
+              <div className="admin-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 22px', borderBottom: '1.5px solid var(--border-subtle)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, var(--accent-orange), #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', flexShrink: 0 }}>
                     <BarChart2 size={18} />
                   </div>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#064E3B' }}>
+                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--text-main)' }}>
                       {t.name} — Detailed Performance
                     </h3>
-                    <p style={{ margin: 0, fontSize: '12px', color: '#064E3B', opacity: 0.85 }}>
+                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>
                       {t.email} • {t.department}
                     </p>
                   </div>
@@ -523,50 +518,50 @@ export default function AdministratorDashboard({
               </div>
 
               {/* Modal Content */}
-              <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+              <div style={{ padding: '20px 22px', overflowY: 'auto', flex: 1, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
                 {/* 4 Performance Metric Cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '24px' }}>
-                  <div style={{ background: 'rgba(252, 108, 38, 0.12)', padding: '14px 16px', borderRadius: '8px', border: '1.5px solid #FC6C26', textAlign: 'center' }}>
-                    <div style={{ fontSize: '11px', color: '#064E3B', fontWeight: 700 }}>Total Allocated</div>
-                    <div style={{ fontSize: '20px', fontWeight: 800, color: '#064E3B', marginTop: '4px' }}>{teacherScripts.length}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+                  <div className="admin-nested-stat-card" style={{ padding: '12px 14px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Allocated</div>
+                    <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)', marginTop: '4px' }}>{teacherScripts.length}</div>
                   </div>
-                  <div style={{ background: 'rgba(252, 108, 38, 0.12)', padding: '14px 16px', borderRadius: '8px', border: '1.5px solid #FC6C26', textAlign: 'center' }}>
-                    <div style={{ fontSize: '11px', color: '#064E3B', fontWeight: 700 }}>Evaluated</div>
-                    <div style={{ fontSize: '20px', fontWeight: 800, color: '#064E3B', marginTop: '4px' }}>{checkedScripts.length}</div>
+                  <div className="admin-nested-stat-card" style={{ padding: '12px 14px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Evaluated</div>
+                    <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--accent-green)', marginTop: '4px' }}>{checkedScripts.length}</div>
                   </div>
-                  <div style={{ background: 'rgba(252, 108, 38, 0.12)', padding: '14px 16px', borderRadius: '8px', border: '1.5px solid #FC6C26', textAlign: 'center' }}>
-                    <div style={{ fontSize: '11px', color: '#064E3B', fontWeight: 700 }}>Pending</div>
-                    <div style={{ fontSize: '20px', fontWeight: 800, color: '#064E3B', marginTop: '4px' }}>{pendingScripts.length}</div>
+                  <div className="admin-nested-stat-card" style={{ padding: '12px 14px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pending</div>
+                    <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--accent-orange)', marginTop: '4px' }}>{pendingScripts.length}</div>
                   </div>
-                  <div style={{ background: 'rgba(252, 108, 38, 0.12)', padding: '14px 16px', borderRadius: '8px', border: '1.5px solid #FC6C26', textAlign: 'center' }}>
-                    <div style={{ fontSize: '11px', color: '#064E3B', fontWeight: 700 }}>Completion</div>
-                    <div style={{ fontSize: '20px', fontWeight: 800, color: '#064E3B', marginTop: '4px' }}>{rate}%</div>
+                  <div className="admin-nested-stat-card" style={{ padding: '12px 14px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Completion</div>
+                    <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)', marginTop: '4px' }}>{rate}%</div>
                   </div>
                 </div>
 
                 {/* Additional KPI Highlights */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '24px' }}>
-                  <div style={{ padding: '12px 18px', background: 'rgba(252, 108, 38, 0.1)', borderRadius: '6px', border: '1.5px solid #FC6C26', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '12px', color: '#064E3B' }}>Average Marks Awarded:</span>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#064E3B' }}>{avgScore !== 'N/A' ? `${avgScore} / 70` : 'No scores yet'}</span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+                  <div className="admin-nested-kpi-card" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Average Marks Awarded:</span>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--accent-orange)' }}>{avgScore !== 'N/A' ? `${avgScore} / 70` : 'No scores yet'}</span>
                   </div>
-                  <div style={{ padding: '12px 18px', background: 'rgba(252, 108, 38, 0.1)', borderRadius: '6px', border: '1.5px solid #FC6C26', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '12px', color: '#064E3B' }}>Revaluations Flagged:</span>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#064E3B' }}>{flaggedScripts.length} scripts</span>
+                  <div className="admin-nested-kpi-card" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Revaluations Flagged:</span>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--accent-red)' }}>{flaggedScripts.length} scripts</span>
                   </div>
                 </div>
 
                 {/* Allocated Scripts Breakdown Table */}
-                <h4 style={{ fontSize: '13px', fontWeight: 800, marginBottom: '10px', color: '#064E3B' }}>
+                <h4 style={{ fontSize: '12.5px', fontWeight: 800, marginBottom: '10px', color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Workload Breakdown ({teacherScripts.length} scripts)
                 </h4>
                 {teacherScripts.length === 0 ? (
-                  <p style={{ fontSize: '12px', color: '#064E3B', fontStyle: 'italic', textAlign: 'center', padding: '16px' }}>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', padding: '16px' }}>
                     No student answer scripts are currently allocated to this teacher.
                   </p>
                 ) : (
-                  <div className="table-responsive" style={{ maxHeight: '220px', overflowY: 'auto' }}>
-                    <table className="table" style={{ fontSize: '12px', width: '100%' }}>
+                  <div className="table-responsive" style={{ maxHeight: '250px', overflowY: 'auto', width: '100%', maxWidth: '100%', boxSizing: 'border-box', margin: 0 }}>
+                    <table className="table" style={{ fontSize: '11px', width: '100%' }}>
                       <thead>
                         <tr>
                           <th>Enrollment</th>
@@ -595,7 +590,7 @@ export default function AdministratorDashboard({
                               <td style={{ textAlign: 'center' }}>
                                 <button 
                                   className="btn btn-secondary btn-sm" 
-                                  style={{ padding: '2px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                  style={{ padding: '4px 10px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
                                   onClick={() => handleInspect(s)}
                                 >
                                   <Eye size={11} /> Inspect ({getPageCount(s)} {getPageCount(s) === 1 ? 'Pg' : 'Pgs'})
@@ -611,7 +606,7 @@ export default function AdministratorDashboard({
               </div>
 
               {/* Modal Footer */}
-              <div style={{ padding: '16px 24px', borderTop: '1.5px solid #FC6C26', display: 'flex', justifyContent: 'flex-end', background: 'rgba(252, 108, 38, 0.12)' }}>
+              <div className="admin-modal-footer" style={{ padding: '14px 22px', display: 'flex', justifyContent: 'flex-end', borderTop: '1.5px solid var(--border-subtle)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
                 <button className="btn btn-secondary btn-sm" onClick={() => setSelectedTeacherForPerf(null)}>
                   Close
                 </button>

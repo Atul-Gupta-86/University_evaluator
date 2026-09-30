@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
-import { 
-  Users, UserCheck, BookOpen, UserPlus, FileText, CheckCircle2, 
-  Eye, Upload, AlertCircle, RefreshCw, Trash2, BarChart2, X, Clock, Award 
+import {
+  Users, UserCheck, BookOpen, UserPlus, FileText, CheckCircle2,
+  Eye, Upload, AlertCircle, RefreshCw, Trash2, BarChart2, X, Clock, Award
 } from 'lucide-react';
 import { allocateStudents, addTeacher, deleteTeacher, addReference, uploadFileToCloudinary } from '../../api';
+import './AdministratorDashboard.css';
 
 export default function AdminDashboard({
+  currentUser,
   students = [],
   teachers = [],
+  departments = [],
+  subjects = [],
   references = [],
   metrics,
   onInspectStudent,
@@ -53,7 +57,7 @@ export default function AdminDashboard({
       onViewReference(docData);
     } else if (typeof onViewDocument === 'function') {
       const url = r.fileUrl || r.copy_url || r.copyUrl || r.url || r.secure_url;
-      onViewDocument(url, `Official Answer Reference: ${r.subjectCode} - ${r.subjectTitle || ''}`, docData);
+      onViewDocument(url, `Official Answer Reference: ${r.subjectCode} - ${r.department || ''}`, docData);
     } else {
       if (onNotify) onNotify('Reference document viewer handler is not configured.', 'warning');
     }
@@ -66,7 +70,7 @@ export default function AdminDashboard({
     try {
       await deleteTeacher(teacher.email || teacher.id);
       if (onNotify) {
-        onNotify(`Evaluator "${teacher.name}" removed successfully from MongoDB registry.`, 'success');
+        onNotify(`Evaluator "${teacher.name}" removed successfully from registry.`, 'success');
       }
       onRefresh();
     } catch (err) {
@@ -80,12 +84,13 @@ export default function AdminDashboard({
   const [teacherName, setTeacherName] = useState('');
   const [teacherEmail, setTeacherEmail] = useState('');
   const [teacherDept, setTeacherDept] = useState('');
+  const [teacherSubject, setTeacherSubject] = useState('');
   const [teacherPassword, setTeacherPassword] = useState('');
   const [isAddingTeacher, setIsAddingTeacher] = useState(false);
 
   // Add Answer Reference Form State
+  const [refDepartment, setRefDepartment] = useState('');
   const [refSubjectCode, setRefSubjectCode] = useState('');
-  const [refSubjectTitle, setRefSubjectTitle] = useState('');
   const [refExamSession, setRefExamSession] = useState('May-June 2026');
   const [refDescription, setRefDescription] = useState('');
   const [refFile, setRefFile] = useState(null);
@@ -160,20 +165,30 @@ export default function AdminDashboard({
 
   const handleAddTeacherSubmit = async (e) => {
     e.preventDefault();
+    if (!teacherDept) {
+      if (onNotify) onNotify('Please select an Academic Department.', 'warning');
+      return;
+    }
+    if (!teacherSubject) {
+      if (onNotify) onNotify('Please select a Subject for this evaluator.', 'warning');
+      return;
+    }
     setIsAddingTeacher(true);
     try {
       await addTeacher({
         name: teacherName.trim(),
         email: teacherEmail.trim(),
         department: teacherDept.trim(),
+        subject: teacherSubject.trim(),
         password: teacherPassword
       });
       if (onNotify) {
-        onNotify(`New evaluator ${teacherName} added and saved to MongoDB.`, 'success');
+        onNotify(`New evaluator ${teacherName} registered successfully.`, 'success');
       }
       setTeacherName('');
       setTeacherEmail('');
       setTeacherDept('');
+      setTeacherSubject('');
       setTeacherPassword('');
       onRefresh();
     } catch (err) {
@@ -185,7 +200,15 @@ export default function AdminDashboard({
 
   const handlePublishReference = async (e) => {
     e.preventDefault();
-    // MANDATORY FILE SELECTION CHECK (as requested!)
+    if (!refDepartment) {
+      if (onNotify) onNotify('Please select an Academic Department before uploading reference.', 'warning');
+      return;
+    }
+    if (!refSubjectCode) {
+      if (onNotify) onNotify('Please select a Subject Code before uploading reference.', 'warning');
+      return;
+    }
+    // MANDATORY FILE SELECTION CHECK
     if (!refFile) {
       if (onNotify) onNotify('Please select an Answer Reference Document file (PDF) before submitting.', 'warning');
       return;
@@ -215,10 +238,10 @@ export default function AdminDashboard({
 
       const copyUrl = uploadRes.copy_url || uploadRes.fileUrl;
 
-      // 3. Save into MongoDB answer_references collection
+      // 3. Save into answer_references collection
       await addReference({
+        department: refDepartment.trim(),
         subjectCode: refSubjectCode.trim().toUpperCase(),
-        subjectTitle: refSubjectTitle.trim(),
         examSession: refExamSession.trim(),
         fileName: refFile.name,
         fileSize: (refFile.size / (1024 * 1024)).toFixed(1) + ' MB',
@@ -229,10 +252,10 @@ export default function AdminDashboard({
       });
 
       if (onNotify) {
-        onNotify(`Official Answer Reference for ${refSubjectCode} uploaded to Cloudinary & saved to MongoDB.`, 'success');
+        onNotify(`Official Answer Reference for ${refSubjectCode} published successfully.`, 'success');
       }
+      setRefDepartment('');
       setRefSubjectCode('');
-      setRefSubjectTitle('');
       setRefDescription('');
       setRefFile(null);
       onRefresh();
@@ -247,7 +270,7 @@ export default function AdminDashboard({
     <div className="tab-pane active">
       {/* Navigation Tabs */}
       <div className="nav-tabs">
-        <button 
+        <button
           className={`nav-tab ${activeTab === 'students' ? 'active' : ''}`}
           onClick={() => setActiveTab('students')}
         >
@@ -255,7 +278,7 @@ export default function AdminDashboard({
           Student Allocation & Management
         </button>
 
-        <button 
+        <button
           className={`nav-tab ${activeTab === 'teachers' ? 'active' : ''}`}
           onClick={() => setActiveTab('teachers')}
         >
@@ -263,7 +286,7 @@ export default function AdminDashboard({
           Teachers Performance
         </button>
 
-        <button 
+        <button
           className={`nav-tab ${activeTab === 'enrollments' ? 'active' : ''}`}
           onClick={() => setActiveTab('enrollments')}
         >
@@ -271,7 +294,7 @@ export default function AdminDashboard({
           Enrollment List
         </button>
 
-        <button 
+        <button
           className={`nav-tab ${activeTab === 'add-teacher' ? 'active' : ''}`}
           onClick={() => setActiveTab('add-teacher')}
         >
@@ -279,7 +302,7 @@ export default function AdminDashboard({
           Add New Teacher
         </button>
 
-        <button 
+        <button
           className={`nav-tab ${activeTab === 'answer-ref' ? 'active' : ''}`}
           onClick={() => setActiveTab('answer-ref')}
         >
@@ -290,20 +313,21 @@ export default function AdminDashboard({
 
       {/* TAB 1: Student Allocation & Management */}
       {activeTab === 'students' && (
-        <div>
+        <div style={{ width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
           {/* Allocation Action Bar */}
-          <div className="allocation-bar liquid-glass">
+          <div className="allocation-bar liquid-glass" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
             <div className="allocation-controls">
               <label style={{ margin: 0, whiteSpace: 'nowrap' }}>Select Evaluator Teacher:</label>
-              <select 
-                style={{ minWidth: '260px' }}
+              <select
+                style={{ minWidth: '260px', background: 'var(--bg-card, #111827)', color: 'var(--text-main, #ffffff)' }}
                 value={selectedTeacherEmail}
                 onChange={(e) => setSelectedTeacherEmail(e.target.value)}
+                className="form-control"
               >
-                <option value="">-- Choose Evaluator --</option>
+                <option value="" style={{ background: '#111827', color: '#ffffff' }}>-- Choose Evaluator --</option>
                 {teachers.map(t => (
-                  <option key={t.email} value={t.email}>
-                    {t.name} ({t.department})
+                  <option key={t.email} value={t.email} style={{ background: '#111827', color: '#ffffff' }}>
+                    {t.name} ({t.department || 'Academic'}{t.subject ? ` - ${t.subject}` : ''})
                   </option>
                 ))}
               </select>
@@ -329,25 +353,25 @@ export default function AdminDashboard({
           {/* 4 Filter Buttons: All, Allocated, Evaluated, Not Allocated (as requested!) */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '14px' }}>
             <div className="filter-btn-group">
-              <button 
+              <button
                 className={`filter-btn ${studentFilter === 'all' ? 'active' : ''}`}
                 onClick={() => { setStudentFilter('all'); setCurrentPage(1); }}
               >
                 All Students ({students.length})
               </button>
-              <button 
+              <button
                 className={`filter-btn ${studentFilter === 'allocated' ? 'active' : ''}`}
                 onClick={() => { setStudentFilter('allocated'); setCurrentPage(1); }}
               >
                 Allocated Students ({allocatedStudents.length})
               </button>
-              <button 
+              <button
                 className={`filter-btn ${studentFilter === 'evaluated' ? 'active' : ''}`}
                 onClick={() => { setStudentFilter('evaluated'); setCurrentPage(1); }}
               >
                 Evaluated ({evaluatedStudents.length})
               </button>
-              <button 
+              <button
                 className={`filter-btn ${studentFilter === 'not_allocated' ? 'active' : ''}`}
                 onClick={() => { setStudentFilter('not_allocated'); setCurrentPage(1); }}
               >
@@ -361,12 +385,12 @@ export default function AdminDashboard({
           </div>
 
           {/* Students Table */}
-          <div className="table-responsive">
-            <table>
+          <div className="table-responsive" style={{ width: '100%', maxWidth: '100%' }}>
+            <table style={{ width: '100%' }}>
               <thead>
                 <tr>
                   <th style={{ width: '44px', textAlign: 'center' }}>
-                    <input 
+                    <input
                       type="checkbox"
                       checked={isAllSelected}
                       disabled={unallocatedOnPage.length === 0}
@@ -403,15 +427,15 @@ export default function AdminDashboard({
                       <tr key={s.id} style={{ background: isSelected ? 'rgba(232, 224, 202, 0.45)' : undefined }}>
                         <td style={{ textAlign: 'center' }}>
                           {isAlreadyAllocated ? (
-                            <input 
-                              type="checkbox" 
-                              disabled 
+                            <input
+                              type="checkbox"
+                              disabled
                               title="Already allocated or evaluated"
                               style={{ cursor: 'not-allowed', opacity: 0.45 }}
                             />
                           ) : (
-                            <input 
-                              type="checkbox" 
+                            <input
+                              type="checkbox"
                               checked={isSelected}
                               onChange={(e) => handleToggleStudent(s.id, e.target.checked)}
                             />
@@ -460,7 +484,7 @@ export default function AdminDashboard({
               Showing {filteredList.length === 0 ? 0 : startIndex + 1} - {Math.min(startIndex + pageSize, filteredList.length)} of {filteredList.length} student scripts (Page {currentPage} of {totalPages})
             </div>
             <div className="pagination-controls">
-              <button 
+              <button
                 className="btn btn-secondary btn-sm"
                 disabled={currentPage <= 1}
                 onClick={() => setCurrentPage(p => p - 1)}
@@ -468,7 +492,7 @@ export default function AdminDashboard({
                 Previous 100
               </button>
               <span style={{ fontSize: '12px', fontWeight: 700, padding: '0 8px' }}>{currentPage}</span>
-              <button 
+              <button
                 className="btn btn-secondary btn-sm"
                 disabled={currentPage >= totalPages}
                 onClick={() => setCurrentPage(p => p + 1)}
@@ -501,8 +525,8 @@ export default function AdminDashboard({
               </thead>
               <tbody>
                 {teachers.map(t => {
-                  const teacherScripts = students.filter(s => 
-                    s.allocatedTeacherEmail === t.email || 
+                  const teacherScripts = students.filter(s =>
+                    s.allocatedTeacherEmail === t.email ||
                     s.allocatedTeacherId === t.email ||
                     s.allocatedTeacher === t.name ||
                     s.allocatedTeacherName === t.name
@@ -521,8 +545,8 @@ export default function AdminDashboard({
                         <span className="status-pill status-checked">{rate}% Evaluated</span>
                       </td>
                       <td style={{ textAlign: 'center' }}>
-                        <button 
-                          className="btn btn-primary btn-sm" 
+                        <button
+                          className="btn btn-primary btn-sm"
                           onClick={() => setSelectedTeacherForPerf(t)}
                           title={`View comprehensive performance analytics for ${t.name}`}
                           style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
@@ -581,77 +605,122 @@ export default function AdminDashboard({
         </div>
       )}
 
-      {/* TAB 4: Add New Teacher (PASSWORD REMOVED FROM TABLE UI as requested!) */}
+      {/* TAB 4: Add New Teacher */}
       {activeTab === 'add-teacher' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '28px', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 300px) minmax(0, 1fr)', gap: '16px', alignItems: 'start', width: '100%', maxWidth: '100%' }}>
           {/* Registration Form */}
-          <div className="liquid-glass" style={{ padding: '24px', borderRadius: '4px' }}>
+          <div className="liquid-glass" style={{ padding: '18px', borderRadius: '4px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px' }}>Register New Evaluator</h3>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>Create official credentials and save directly to MongoDB teachers schema.</p>
-
             <form onSubmit={handleAddTeacherSubmit}>
               <div className="form-group">
                 <label>Teacher Full Name *</label>
-                <input 
-                  type="text" 
-                  value={teacherName} 
-                  onChange={(e) => setTeacherName(e.target.value)} 
-                  required 
-                  placeholder="e.g. Dr. Rajesh Sharma" 
+                <input
+                  type="text"
+                  value={teacherName}
+                  onChange={(e) => setTeacherName(e.target.value)}
+                  required
+                  placeholder="e.g. Dr. Rajesh Sharma"
                 />
               </div>
 
               <div className="form-group">
                 <label>Login Email Address *</label>
-                <input 
-                  type="email" 
-                  value={teacherEmail} 
-                  onChange={(e) => setTeacherEmail(e.target.value)} 
-                  required 
-                  placeholder="e.g. rajesh.teacher@gmail.com" 
+                <input
+                  type="email"
+                  value={teacherEmail}
+                  onChange={(e) => setTeacherEmail(e.target.value)}
+                  required
+                  placeholder="e.g. rajesh.teacher@gmail.com"
                 />
               </div>
 
               <div className="form-group">
-                <label>Department / Faculty *</label>
-                <input 
-                  type="text" 
-                  value={teacherDept} 
-                  onChange={(e) => setTeacherDept(e.target.value)} 
-                  required 
-                  placeholder="e.g. Computer Science & Engineering" 
-                />
+                <label>Department *</label>
+                <select
+                  value={teacherDept}
+                  onChange={(e) => {
+                    setTeacherDept(e.target.value);
+                    setTeacherSubject('');
+                  }}
+                  required
+                  className="form-control"
+                  style={{ background: 'var(--bg-card, #111827)', color: 'var(--text-main, #ffffff)' }}
+                >
+                  <option value="" style={{ background: '#111827', color: '#ffffff' }}>-- Select Academic Department --</option>
+                  {departments.map((d) => (
+                    <option key={d.code || d.name} value={d.name || d.code} style={{ background: '#111827', color: '#ffffff' }}>
+                      {d.code ? `[${d.code}] ` : ''}{d.name}
+                    </option>
+                  ))}
+                </select>
+                {departments.length === 0 && (
+                  <small style={{ color: '#FC6C26', display: 'block', marginTop: '4px', fontSize: '11px' }}>
+                    ⚠️ No departments registered. Add departments in University Dashboard first.
+                  </small>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label>Assigned Subject *</label>
+                <select
+                  value={teacherSubject}
+                  onChange={(e) => setTeacherSubject(e.target.value)}
+                  required
+                  disabled={!teacherDept}
+                  className="form-control"
+                  style={{ background: 'var(--bg-card, #111827)', color: 'var(--text-main, #ffffff)' }}
+                >
+                  <option value="" style={{ background: '#111827', color: '#ffffff' }}>{teacherDept ? '-- Select Subject --' : '-- Choose Department First --'}</option>
+                  {subjects.filter(s => {
+                    if (!teacherDept) return false;
+                    const deptObj = departments.find(d => d.name === teacherDept || d.code === teacherDept);
+                    return s.department === teacherDept || (deptObj && (s.department === deptObj.name || s.department === deptObj.code));
+                  }).map((s) => (
+                    <option key={s.code || s._id || s.name} value={s.name || s.code} style={{ background: '#111827', color: '#ffffff' }}>
+                      [{s.code}] {s.name}
+                    </option>
+                  ))}
+                </select>
+                {teacherDept && subjects.filter(s => {
+                  const deptObj = departments.find(d => d.name === teacherDept || d.code === teacherDept);
+                  return s.department === teacherDept || (deptObj && (s.department === deptObj.name || s.department === deptObj.code));
+                }).length === 0 && (
+                  <small style={{ color: '#FC6C26', display: 'block', marginTop: '4px', fontSize: '11px' }}>
+                    ⚠️ No subjects found under this department.
+                  </small>
+                )}
               </div>
 
               <div className="form-group">
                 <label>Login Password *</label>
-                <input 
-                  type="password" 
-                  value={teacherPassword} 
-                  onChange={(e) => setTeacherPassword(e.target.value)} 
-                  required 
-                  placeholder="Create teacher password" 
+                <input
+                  type="password"
+                  value={teacherPassword}
+                  onChange={(e) => setTeacherPassword(e.target.value)}
+                  required
+                  placeholder="Create teacher password"
                 />
               </div>
 
               <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '16px' }} disabled={isAddingTeacher}>
                 <UserPlus size={15} />
-                {isAddingTeacher ? 'Registering...' : 'Save Teacher to Database'}
+                {isAddingTeacher ? 'Registering...' : 'Save Teacher'}
               </button>
             </form>
           </div>
 
           {/* Active Registry Table with Remove Teacher option */}
-          <div className="liquid-glass" style={{ padding: '24px', borderRadius: '4px' }}>
+          <div className="liquid-glass" style={{ padding: '18px', borderRadius: '4px', minWidth: 0, width: '100%' }}>
             <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '4px' }}>Active Evaluator Registry</h3>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>Teachers currently able to log in and receive answer sheet allocations.</p>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px' }}>Teachers currently able to log in and receive answer sheet allocations.</p>
 
-            <div className="table-responsive">
-              <table>
+            <div className="table-responsive" style={{ width: '100%', maxWidth: '100%' }}>
+              <table style={{ width: '100%' }}>
                 <thead>
                   <tr>
                     <th>Teacher Name</th>
                     <th>Department</th>
+                    <th>Assigned Subject</th>
                     <th>Login Email</th>
                     <th>Status</th>
                     <th style={{ textAlign: 'right' }}>Actions</th>
@@ -660,7 +729,7 @@ export default function AdminDashboard({
                 <tbody>
                   {teachers.length === 0 ? (
                     <tr>
-                      <td colSpan="5" style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-muted)' }}>
+                      <td colSpan="6" style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-muted)' }}>
                         No evaluators registered. Use the form on the left to add a teacher.
                       </td>
                     </tr>
@@ -669,12 +738,13 @@ export default function AdminDashboard({
                       <tr key={t.email}>
                         <td style={{ fontWeight: 700 }}>{t.name}</td>
                         <td>{t.department}</td>
+                        <td><span className="badge badge-neutral">{t.subject || 'All Subjects'}</span></td>
                         <td className="mono" style={{ fontSize: '12px' }}>{t.email}</td>
                         <td>
                           <span className="status-pill status-checked">Active</span>
                         </td>
                         <td style={{ textAlign: 'right' }}>
-                          <button 
+                          <button
                             className="btn btn-outline btn-sm"
                             style={{ color: '#FC6C26', borderColor: '#FC6C26' }}
                             onClick={() => handleRemoveTeacher(t)}
@@ -693,57 +763,92 @@ export default function AdminDashboard({
         </div>
       )}
 
-      {/* TAB 5: Answer Reference (Cloudinary Upload, View Reference Document, Candidate Registry Removed as requested!) */}
+      {/* TAB 5: Answer Reference */}
       {activeTab === 'answer-ref' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '410px 1fr', gap: '28px', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 300px) minmax(0, 1fr)', gap: '16px', alignItems: 'start', width: '100%', maxWidth: '100%' }}>
           {/* Add Answer Reference Form */}
-          <div className="liquid-glass" style={{ padding: '24px', borderRadius: '4px' }}>
+          <div className="liquid-glass" style={{ padding: '18px', borderRadius: '4px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px' }}>Add Answer Reference</h3>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-              Publish official model solutions and marking schemes into Cloudinary & MongoDB.
+              Publish official model solutions and marking schemes into Cloudinary CDN.
             </p>
 
             <form onSubmit={handlePublishReference}>
               <div className="form-group">
-                <label>Subject Code *</label>
-                <input 
-                  type="text" 
-                  value={refSubjectCode} 
-                  onChange={(e) => setRefSubjectCode(e.target.value)} 
-                  required 
-                  placeholder="e.g. CS-401" 
-                />
+                <label>Academic Department *</label>
+                <select
+                  value={refDepartment}
+                  onChange={(e) => {
+                    setRefDepartment(e.target.value);
+                    setRefSubjectCode('');
+                  }}
+                  required
+                  className="form-control"
+                  style={{ background: 'var(--bg-card, #111827)', color: 'var(--text-main, #ffffff)' }}
+                >
+                  <option value="" style={{ background: '#111827', color: '#ffffff' }}>-- Select Academic Department --</option>
+                  {departments.map((d) => (
+                    <option key={d.code || d.name} value={d.name || d.code} style={{ background: '#111827', color: '#ffffff' }}>
+                      {d.code ? `[${d.code}] ` : ''}{d.name}
+                    </option>
+                  ))}
+                </select>
+                {departments.length === 0 && (
+                  <small style={{ color: '#FC6C26', display: 'block', marginTop: '4px', fontSize: '11px' }}>
+                    ⚠️ No departments registered. Add departments in University Dashboard first.
+                  </small>
+                )}
               </div>
 
               <div className="form-group">
-                <label>Subject Title *</label>
-                <input 
-                  type="text" 
-                  value={refSubjectTitle} 
-                  onChange={(e) => setRefSubjectTitle(e.target.value)} 
-                  required 
-                  placeholder="e.g. Design and Analysis of Algorithms" 
-                />
+                <label>Subject Code *</label>
+                <select
+                  value={refSubjectCode}
+                  onChange={(e) => setRefSubjectCode(e.target.value)}
+                  required
+                  disabled={!refDepartment}
+                  className="form-control"
+                  style={{ background: 'var(--bg-card, #111827)', color: 'var(--text-main, #ffffff)' }}
+                >
+                  <option value="" style={{ background: '#111827', color: '#ffffff' }}>{refDepartment ? '-- Select Subject Code --' : '-- Choose Department First --'}</option>
+                  {subjects.filter(s => {
+                    if (!refDepartment) return false;
+                    const deptObj = departments.find(d => d.name === refDepartment || d.code === refDepartment);
+                    return s.department === refDepartment || (deptObj && (s.department === deptObj.name || s.department === deptObj.code));
+                  }).map((s) => (
+                    <option key={s.code || s._id} value={s.code} style={{ background: '#111827', color: '#ffffff' }}>
+                      [{s.code}] {s.name}
+                    </option>
+                  ))}
+                </select>
+                {refDepartment && subjects.filter(s => {
+                  const deptObj = departments.find(d => d.name === refDepartment || d.code === refDepartment);
+                  return s.department === refDepartment || (deptObj && (s.department === deptObj.name || s.department === deptObj.code));
+                }).length === 0 && (
+                  <small style={{ color: '#FC6C26', display: 'block', marginTop: '4px', fontSize: '11px' }}>
+                    ⚠️ No subjects found under this department.
+                  </small>
+                )}
               </div>
 
               <div className="form-group">
                 <label>Exam Session</label>
-                <input 
-                  type="text" 
-                  value={refExamSession} 
-                  onChange={(e) => setRefExamSession(e.target.value)} 
-                  required 
+                <input
+                  type="text"
+                  value={refExamSession}
+                  onChange={(e) => setRefExamSession(e.target.value)}
+                  required
                 />
               </div>
 
-              {/* MANDATORY FILE SELECTION CHECK (required attribute + state check!) */}
+              {/* MANDATORY FILE SELECTION CHECK */}
               <div className="form-group">
                 <label>Select Answer Reference Document (PDF) *</label>
-                <input 
-                  type="file" 
-                  accept=".pdf" 
-                  required 
-                  onChange={(e) => setRefFile(e.target.files?.[0] || null)} 
+                <input
+                  type="file"
+                  accept=".pdf"
+                  required
+                  onChange={(e) => setRefFile(e.target.files?.[0] || null)}
                 />
                 <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
                   {refFile ? `Selected: ${refFile.name} (${(refFile.size / (1024 * 1024)).toFixed(2)} MB)` : 'Upload approved official marking scheme PDF.'}
@@ -752,11 +857,11 @@ export default function AdminDashboard({
 
               <div className="form-group">
                 <label>Evaluation Rubric Notes</label>
-                <textarea 
-                  rows="3" 
-                  value={refDescription} 
-                  onChange={(e) => setRefDescription(e.target.value)} 
-                  placeholder="Enter key grading rubric points..." 
+                <textarea
+                  rows="3"
+                  value={refDescription}
+                  onChange={(e) => setRefDescription(e.target.value)}
+                  placeholder="Enter key grading rubric points..."
                 />
               </div>
 
@@ -768,18 +873,18 @@ export default function AdminDashboard({
           </div>
 
           {/* Official References Table with "View Reference Document" Button */}
-          <div className="liquid-glass" style={{ padding: '24px', borderRadius: '4px' }}>
+          <div className="liquid-glass" style={{ padding: '18px', borderRadius: '4px', minWidth: 0, width: '100%', overflow: 'hidden' }}>
             <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '4px' }}>Official Answer References & Subject Documents</h3>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-              Inspect the official model solution document uploaded for respective subject code, title, and exam session.
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px' }}>
+              Inspect the official model solution document uploaded for respective subject code and exam session.
             </p>
 
-            <div className="table-responsive">
-              <table>
+            <div className="table-responsive" style={{ width: '100%', maxWidth: '100%' }}>
+              <table style={{ width: '100%' }}>
                 <thead>
                   <tr>
                     <th>Subject Code</th>
-                    <th>Subject Title</th>
+                    <th>Department</th>
                     <th>Session</th>
                     <th>Reference Document</th>
                     <th style={{ textAlign: 'center' }}>Action</th>
@@ -796,16 +901,15 @@ export default function AdminDashboard({
                     references.map(r => (
                       <tr key={r.id || r.subjectCode}>
                         <td className="mono" style={{ fontWeight: 700 }}>{r.subjectCode}</td>
-                        <td>{r.subjectTitle}</td>
+                        <td>{r.department || 'General'}</td>
                         <td>{r.examSession}</td>
                         <td style={{ fontWeight: 600 }}>
-                          <span className="cloudinary-status-tag" style={{ background: 'rgba(252, 108, 38, 0.15)', borderColor: '#FC6C26', color: '#064E3B' }}>
+                          <span className="cloudinary-status-tag" style={{ background: 'var(--surface-glass-accent)', borderColor: 'var(--border-strong)', color: 'var(--text-main)' }}>
                             {r.fileName || `${r.subjectCode}_Model_Solution.pdf`}
                           </span>
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          {/* "View Reference Document" button (as requested!) */}
-                          <button 
+                          <button
                             className="btn btn-primary btn-sm"
                             onClick={() => handleViewRef(r)}
                             title={`Open official answer reference uploaded for ${r.subjectCode}`}
@@ -821,7 +925,6 @@ export default function AdminDashboard({
                 </tbody>
               </table>
             </div>
-            {/* Note: "Direct Candidate Scanned Copies Registry" removed from here as requested! */}
           </div>
         </div>
       )}
@@ -829,8 +932,8 @@ export default function AdminDashboard({
       {/* Detailed Teacher Performance Modal Popup (Window) */}
       {selectedTeacherForPerf && (() => {
         const t = selectedTeacherForPerf;
-        const teacherScripts = students.filter(s => 
-          s.allocatedTeacherEmail === t.email || 
+        const teacherScripts = students.filter(s =>
+          s.allocatedTeacherEmail === t.email ||
           s.allocatedTeacherId === t.email ||
           s.allocatedTeacher === t.name ||
           s.allocatedTeacherName === t.name
@@ -839,7 +942,7 @@ export default function AdminDashboard({
         const pendingScripts = teacherScripts.filter(s => !checkedScripts.includes(s));
         const flaggedScripts = teacherScripts.filter(s => s.inRevaluation || s.status === 'Sent for Revaluation' || s.evaluationStatus === 'revaluation');
         const rate = teacherScripts.length > 0 ? ((checkedScripts.length / teacherScripts.length) * 100).toFixed(0) : 0;
-        
+
         // Calculate average score awarded
         let totalScoreSum = 0;
         let evaluatedWithScore = 0;
@@ -854,41 +957,39 @@ export default function AdminDashboard({
 
         return (
           <div className="modal-backdrop" onClick={() => setSelectedTeacherForPerf(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', zIndex: 99999 }}>
-            <div 
-              className="modal-dialog liquid-glass" 
+            <div
+              className="modal-dialog admin-liquid-modal"
               onClick={(e) => e.stopPropagation()}
-              style={{ 
-                maxWidth: '750px', 
-                width: '100%', 
-                maxHeight: '85vh', 
+              style={{
+                maxWidth: '780px',
+                width: '92vw',
+                maxHeight: '88vh',
                 padding: 0,
-                overflow: 'hidden', 
-                display: 'flex', 
+                overflow: 'hidden',
+                display: 'flex',
                 flexDirection: 'column',
-                background: '#F8E7C9',
-                border: '2px solid #FC6C26',
-                borderRadius: '12px',
-                boxShadow: '0 20px 45px rgba(6,78,59,0.2)'
+                backdropFilter: 'blur(28px)',
+                WebkitBackdropFilter: 'blur(28px)'
               }}
             >
               {/* Modal Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 24px', borderBottom: '1.5px solid #FC6C26', background: 'rgba(252, 108, 38, 0.12)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#FC6C26', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#064E3B' }}>
+              <div className="admin-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 22px', borderBottom: '1.5px solid var(--border-subtle)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, var(--accent-orange), #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', flexShrink: 0 }}>
                     <BarChart2 size={18} />
                   </div>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#064E3B' }}>
+                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--text-main)' }}>
                       {t.name} — Detailed Performance
                     </h3>
-                    <p style={{ margin: 0, fontSize: '12px', color: '#064E3B', opacity: 0.85 }}>
+                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>
                       {t.email} • {t.department}
                     </p>
                   </div>
                 </div>
-                <button 
+                <button
                   type="button"
-                  className="btn btn-secondary btn-sm btn-icon-only" 
+                  className="btn btn-secondary btn-sm btn-icon-only"
                   onClick={() => setSelectedTeacherForPerf(null)}
                   style={{ borderRadius: '50%', width: '32px', height: '32px', padding: 0 }}
                 >
@@ -897,50 +998,50 @@ export default function AdminDashboard({
               </div>
 
               {/* Modal Content */}
-              <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+              <div style={{ padding: '20px 22px', overflowY: 'auto', flex: 1, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
                 {/* 4 Performance Metric Cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '24px' }}>
-                  <div style={{ background: 'rgba(252, 108, 38, 0.12)', padding: '14px 16px', borderRadius: '8px', border: '1.5px solid #FC6C26', textAlign: 'center' }}>
-                    <div style={{ fontSize: '11px', color: '#064E3B', fontWeight: 700 }}>Total Allocated</div>
-                    <div style={{ fontSize: '20px', fontWeight: 800, color: '#064E3B', marginTop: '4px' }}>{teacherScripts.length}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+                  <div className="admin-nested-stat-card" style={{ padding: '12px 14px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Allocated</div>
+                    <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)', marginTop: '4px' }}>{teacherScripts.length}</div>
                   </div>
-                  <div style={{ background: 'rgba(252, 108, 38, 0.12)', padding: '14px 16px', borderRadius: '8px', border: '1.5px solid #FC6C26', textAlign: 'center' }}>
-                    <div style={{ fontSize: '11px', color: '#064E3B', fontWeight: 700 }}>Evaluated</div>
-                    <div style={{ fontSize: '20px', fontWeight: 800, color: '#064E3B', marginTop: '4px' }}>{checkedScripts.length}</div>
+                  <div className="admin-nested-stat-card" style={{ padding: '12px 14px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Evaluated</div>
+                    <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--accent-green)', marginTop: '4px' }}>{checkedScripts.length}</div>
                   </div>
-                  <div style={{ background: 'rgba(252, 108, 38, 0.12)', padding: '14px 16px', borderRadius: '8px', border: '1.5px solid #FC6C26', textAlign: 'center' }}>
-                    <div style={{ fontSize: '11px', color: '#064E3B', fontWeight: 700 }}>Pending</div>
-                    <div style={{ fontSize: '20px', fontWeight: 800, color: '#064E3B', marginTop: '4px' }}>{pendingScripts.length}</div>
+                  <div className="admin-nested-stat-card" style={{ padding: '12px 14px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pending</div>
+                    <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--accent-orange)', marginTop: '4px' }}>{pendingScripts.length}</div>
                   </div>
-                  <div style={{ background: 'rgba(252, 108, 38, 0.12)', padding: '14px 16px', borderRadius: '8px', border: '1.5px solid #FC6C26', textAlign: 'center' }}>
-                    <div style={{ fontSize: '11px', color: '#064E3B', fontWeight: 700 }}>Completion</div>
-                    <div style={{ fontSize: '20px', fontWeight: 800, color: '#064E3B', marginTop: '4px' }}>{rate}%</div>
+                  <div className="admin-nested-stat-card" style={{ padding: '12px 14px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Completion</div>
+                    <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)', marginTop: '4px' }}>{rate}%</div>
                   </div>
                 </div>
 
                 {/* Additional KPI Highlights */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '24px' }}>
-                  <div style={{ padding: '12px 18px', background: 'rgba(252, 108, 38, 0.1)', borderRadius: '6px', border: '1.5px solid #FC6C26', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '12px', color: '#064E3B' }}>Average Marks Awarded:</span>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#064E3B' }}>{avgScore !== 'N/A' ? `${avgScore} / 70` : 'No scores yet'}</span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+                  <div className="admin-nested-kpi-card" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Average Marks Awarded:</span>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--accent-orange)' }}>{avgScore !== 'N/A' ? `${avgScore} / 70` : 'No scores yet'}</span>
                   </div>
-                  <div style={{ padding: '12px 18px', background: 'rgba(252, 108, 38, 0.1)', borderRadius: '6px', border: '1.5px solid #FC6C26', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '12px', color: '#064E3B' }}>Revaluations Flagged:</span>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#064E3B' }}>{flaggedScripts.length} scripts</span>
+                  <div className="admin-nested-kpi-card" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Revaluations Flagged:</span>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--accent-red)' }}>{flaggedScripts.length} scripts</span>
                   </div>
                 </div>
 
                 {/* Allocated Scripts Breakdown Table */}
-                <h4 style={{ fontSize: '13px', fontWeight: 800, marginBottom: '10px', color: '#064E3B' }}>
+                <h4 style={{ fontSize: '12.5px', fontWeight: 800, marginBottom: '10px', color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Workload Breakdown ({teacherScripts.length} scripts)
                 </h4>
                 {teacherScripts.length === 0 ? (
-                  <p style={{ fontSize: '12px', color: '#064E3B', fontStyle: 'italic', textAlign: 'center', padding: '16px' }}>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', padding: '16px' }}>
                     No student answer scripts are currently allocated to this teacher.
                   </p>
                 ) : (
-                  <div className="table-responsive" style={{ maxHeight: '220px', overflowY: 'auto' }}>
-                    <table className="table" style={{ fontSize: '12px', width: '100%' }}>
+                  <div className="table-responsive" style={{ maxHeight: '250px', overflowY: 'auto', width: '100%', maxWidth: '100%', boxSizing: 'border-box', margin: 0 }}>
+                    <table className="table" style={{ fontSize: '11px', width: '100%' }}>
                       <thead>
                         <tr>
                           <th>Enrollment</th>
@@ -967,9 +1068,9 @@ export default function AdminDashboard({
                               </td>
                               <td style={{ fontWeight: 700 }}>{isDone ? score : '-'}</td>
                               <td style={{ textAlign: 'center' }}>
-                                <button 
-                                  className="btn btn-secondary btn-sm" 
-                                  style={{ padding: '2px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                <button
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ padding: '4px 10px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
                                   onClick={() => handleInspect(s)}
                                 >
                                   <Eye size={11} /> Inspect ({getPageCount(s)} {getPageCount(s) === 1 ? 'Pg' : 'Pgs'})
@@ -985,13 +1086,14 @@ export default function AdminDashboard({
               </div>
 
               {/* Modal Footer */}
-              <div style={{ padding: '16px 24px', borderTop: '1.5px solid #FC6C26', display: 'flex', justifyContent: 'flex-end', background: 'rgba(252, 108, 38, 0.12)' }}>
+              <div className="admin-modal-footer" style={{ padding: '14px 22px', display: 'flex', justifyContent: 'flex-end', borderTop: '1.5px solid var(--border-subtle)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
                 <button className="btn btn-secondary btn-sm" onClick={() => setSelectedTeacherForPerf(null)}>
                   Close
                 </button>
               </div>
             </div>
           </div>
+
         );
       })()}
     </div>

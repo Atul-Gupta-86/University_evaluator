@@ -124,7 +124,7 @@ export default function DocumentViewerModal({
   return (
     <div className="modal-backdrop" onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', zIndex: 99999 }}>
       <div 
-        className="modal-dialog modal-xl liquid-glass" 
+        className="modal-dialog modal-xl modal-doc-viewer" 
         onClick={(e) => e.stopPropagation()}
         style={{ 
           display: 'flex', 
@@ -133,24 +133,24 @@ export default function DocumentViewerModal({
           width: '94vw', 
           maxWidth: '1200px',
           padding: 0,
-          background: '#F8E7C9',
-          border: '2px solid #FC6C26',
-          borderRadius: '12px',
-          overflow: 'hidden'
+          borderRadius: '20px',
+          overflow: 'hidden',
+          backdropFilter: 'blur(28px)',
+          WebkitBackdropFilter: 'blur(28px)'
         }}
       >
         {/* Header */}
-        <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1.5px solid #FC6C26' }}>
+        <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1.5px solid var(--border-subtle)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <FileText size={20} color="#FC6C26" />
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#064E3B' }}>{title}</h3>
-                <span style={{ fontSize: '11px', fontWeight: 800, padding: '2px 8px', borderRadius: '4px', border: '1.5px solid #FC6C26', background: 'rgba(252, 108, 38, 0.15)', color: '#064E3B' }}>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800 }}>{title}</h3>
+                <span className="badge" style={{ fontSize: '11px', fontWeight: 800, padding: '2px 8px' }}>
                   {totalPages} {totalPages === 1 ? 'Page' : 'Pages'} {isLoadingPages && '...'}
                 </span>
               </div>
-              <p style={{ margin: 0, fontSize: '11px', color: '#064E3B', opacity: 0.85 }}>
+              <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>
                 {isCloudinary ? '☁️ Encrypted Cloudinary CDN Storage' : 'Local Digital Repository'}
               </p>
             </div>
@@ -181,7 +181,7 @@ export default function DocumentViewerModal({
         </div>
 
         {/* Toolbar: Page Navigation, Dropdown Jump & Zoom Controls */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(232, 224, 202, 0.5)', padding: '10px 24px', borderBottom: '1px solid #FC6C26', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface-glass)', padding: '10px 24px', borderBottom: '1px solid var(--border-subtle)', flexWrap: 'wrap', gap: '12px', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
           {/* Page Navigation Controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button 
@@ -199,10 +199,10 @@ export default function DocumentViewerModal({
               onChange={(e) => { setCurrentPage(Number(e.target.value)); setImgError(false); }}
               style={{
                 padding: '6px 12px',
-                borderRadius: '6px',
-                border: '1.5px solid #FC6C26',
-                background: '#F8E7C9',
-                color: '#064E3B',
+                borderRadius: '8px',
+                border: '1.5px solid var(--border-strong)',
+                background: 'var(--surface-glass)',
+                color: 'var(--text-main)',
                 fontWeight: 800,
                 fontSize: '12.5px',
                 cursor: 'pointer'
@@ -259,14 +259,14 @@ export default function DocumentViewerModal({
             display: 'flex', 
             alignItems: 'center', 
             gap: '6px', 
-            background: 'rgba(252, 108, 38, 0.1)', 
+            background: 'var(--surface-glass-accent)', 
             padding: '8px 24px', 
-            borderBottom: '1.5px solid #FC6C26', 
+            borderBottom: '1.5px solid var(--border-subtle)', 
             overflowX: 'auto',
             whiteSpace: 'nowrap'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginRight: '6px', color: '#064E3B', fontSize: '11.5px', fontWeight: 800, textTransform: 'uppercase' }}>
-              <Layers size={13} color="#FC6C26" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginRight: '6px', color: 'var(--text-main)', fontSize: '11.5px', fontWeight: 800, textTransform: 'uppercase' }}>
+              <Layers size={13} color="var(--accent-orange)" />
               <span>Toggle Page:</span>
             </div>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
@@ -276,15 +276,15 @@ export default function DocumentViewerModal({
                 onClick={() => { setCurrentPage(p); setImgError(false); }}
                 style={{
                   padding: '4px 10px',
-                  borderRadius: '4px',
-                  border: '1.5px solid #FC6C26',
-                  background: currentPage === p ? '#FC6C26' : '#F8E7C9',
-                  color: '#064E3B',
+                  borderRadius: '6px',
+                  border: '1.5px solid var(--border-strong)',
+                  background: currentPage === p ? 'var(--accent-orange)' : 'var(--surface-glass)',
+                  color: currentPage === p ? '#ffffff' : 'var(--text-main)',
                   fontWeight: currentPage === p ? 800 : 600,
                   fontSize: '12px',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
-                  boxShadow: currentPage === p ? '0 2px 6px rgba(252, 108, 38, 0.4)' : 'none',
+                  boxShadow: currentPage === p ? '0 2px 6px rgba(245, 158, 11, 0.4)' : 'none',
                   minWidth: '32px'
                 }}
                 title={`Jump to Page ${p}`}
@@ -296,7 +296,7 @@ export default function DocumentViewerModal({
         )}
 
         {/* High-Resolution Document Canvas */}
-        <div style={{ flex: 1, overflow: 'auto', background: '#edd8b5', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px' }}>
+        <div style={{ flex: 1, overflow: 'auto', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px' }}>
           {rawUrl ? (
             <div 
               style={{ 
@@ -314,8 +314,8 @@ export default function DocumentViewerModal({
                   alt={`Scanned Document Page ${currentPage}`}
                   style={{ 
                     maxWidth: '100%', 
-                    boxShadow: '0 10px 35px rgba(6,78,59,0.2)', 
-                    border: '1.5px solid #FC6C26', 
+                    boxShadow: '0 10px 35px rgba(0, 0, 0, 0.35)', 
+                    border: '1.5px solid var(--border-subtle)', 
                     background: '#ffffff',
                     display: 'block'
                   }}

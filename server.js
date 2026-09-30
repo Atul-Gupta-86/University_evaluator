@@ -620,19 +620,19 @@ const server = http.createServer(async (req, res) => {
   if (reqPath === '/api/departments/add' && req.method === 'POST') {
     try {
       const { name, code, head, email } = await parseJSONBody(req);
-      if (!name || !code || !head || !email) {
+      if (!name || !code) {
         return sendJSON(res, 400, { 
           success: false, 
-          error: 'Department Code, Name, Head of Department, and Official Email are all mandatory.' 
+          error: 'Department Code and Name are mandatory.' 
         });
       }
       const saved = await mongodbHandler.insertDepartment({ 
         name: name.trim(), 
         code: code.trim().toUpperCase(), 
-        head: head.trim(), 
-        email: email.trim().toLowerCase() 
+        head: (head || '').trim(), 
+        email: (email || '').trim().toLowerCase() 
       });
-      console.log(`[API] Added department ${saved.code}: ${saved.name} (HoD: ${saved.head}, Email: ${saved.email}) to MongoDB.`);
+      console.log(`[API] Added department ${saved.code}: ${saved.name} to MongoDB.`);
       return sendJSON(res, 201, { success: true, department: saved });
     } catch (e) {
       return sendJSON(res, 500, { success: false, error: e.message });

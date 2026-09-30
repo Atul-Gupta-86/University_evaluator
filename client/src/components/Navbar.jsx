@@ -1,7 +1,7 @@
 import React from 'react';
-import { ShieldCheck, User, LogOut, CheckCircle2, Cloud } from 'lucide-react';
+import { ShieldCheck, User, LogOut, CheckCircle2, Cloud, Search, Repeat, Sparkles, Sun, Moon } from 'lucide-react';
 
-export default function Navbar({ currentUser, onLogout, onOpenProfile, serverStatus }) {
+export default function Navbar({ currentUser, onLogout, onOpenProfile, serverStatus, themeMode = 'dark', onToggleTheme }) {
   return (
     <header className="app-header">
       <div className="header-brand">
@@ -9,29 +9,40 @@ export default function Navbar({ currentUser, onLogout, onOpenProfile, serverSta
           MP
         </div>
         <div className="header-title-wrap">
-          <h1>MPOnline Examination Evaluation Portal</h1>
-          <p>State Board of Technical & Higher Education, Madhya Pradesh</p>
+          <h1 className="header-title-text">MPOnline Evaluation Portal</h1>
+          <p className="header-subtitle-text">State Board of Technical & Higher Education, MP</p>
         </div>
       </div>
 
       <div className="header-user-status">
-        {serverStatus && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: '#064E3B', background: 'rgba(252, 108, 38, 0.15)', padding: '4px 10px', borderRadius: '4px', border: '1px solid #FC6C26' }}>
-            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#064E3B', display: 'inline-block' }}></span>
-            <span>MongoDB Atlas Connected</span>
-            {serverStatus.cloudinaryConfigured && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', borderLeft: '1px solid #FC6C26', paddingLeft: '6px', color: '#FC6C26' }}>
-                <Cloud size={12} /> Cloudinary CDN
-              </span>
-            )}
+        {/* Universal Theme Mode Switcher: Dark Mode (Admin UI) <-> Light Mode (University UI) */}
+        <button 
+          type="button" 
+          className="theme-mode-toggle-btn"
+          onClick={onToggleTheme}
+          title={themeMode === 'dark' ? 'Switch to Light Mode (University Board UI)' : 'Switch to Dark Mode (Administrator UI)'}
+          aria-label="Toggle Portal Theme Mode"
+        >
+          <span className="theme-toggle-icon-wrap">
+            {themeMode === 'dark' ? <Moon size={13} /> : <Sun size={13} />}
+          </span>
+          <span className="theme-toggle-label">
+            {themeMode === 'dark' ? 'Dark' : 'Light'}
+          </span>
+        </button>
+
+        {serverStatus && serverStatus.cloudinaryConfigured && (
+          <div className="server-status-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 700, padding: '4px 8px', borderRadius: '8px', whiteSpace: 'nowrap' }}>
+            <Cloud size={12} />
+            <span>CDN</span>
           </div>
         )}
 
         {currentUser && (
           <>
-            <div className="user-badge">
-              <span className="user-badge-name">{currentUser.name}</span>
-              <span className="user-badge-role">
+            <div className="user-badge" style={{ whiteSpace: 'nowrap' }}>
+              <span className="user-badge-name" style={{ fontSize: '12.5px' }}>{currentUser.name}</span>
+              <span className="user-badge-role" style={{ fontSize: '9.5px' }}>
                 {currentUser.role === 'admin' ? 'Admin Cell' :
                  currentUser.role === 'administrator' ? 'Administrator' :
                  currentUser.role === 'university' ? 'University Board' : 'Evaluator'}
@@ -42,8 +53,9 @@ export default function Navbar({ currentUser, onLogout, onOpenProfile, serverSta
               className="btn btn-secondary btn-sm"
               onClick={onOpenProfile}
               title="Edit Profile & Security Credentials with Email OTP"
+              style={{ whiteSpace: 'nowrap', padding: '4px 10px', fontSize: '12px' }}
             >
-              <User size={14} />
+              <User size={13} />
               Profile
             </button>
 
@@ -51,8 +63,9 @@ export default function Navbar({ currentUser, onLogout, onOpenProfile, serverSta
               className="btn btn-secondary btn-sm"
               onClick={onLogout}
               title="Sign Out of Portal"
+              style={{ whiteSpace: 'nowrap', padding: '4px 10px', fontSize: '12px' }}
             >
-              <LogOut size={14} />
+              <LogOut size={13} />
               Logout
             </button>
           </>

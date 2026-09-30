@@ -48,7 +48,7 @@ export default function MetricCards({ metrics, students = [] }) {
             <Users size={18} color="#FC6C26" />
           </div>
         </div>
-        <span className="stat-box-value" style={{ color: '#064E3B' }}>{total}</span>
+        <span className="stat-box-value">{total}</span>
         <span className="stat-box-subtext">Active answer script records in archive</span>
       </div>
 
@@ -60,7 +60,7 @@ export default function MetricCards({ metrics, students = [] }) {
             <UserCheck size={18} color="#FC6C26" />
           </div>
         </div>
-        <span className="stat-box-value" style={{ color: '#064E3B' }}>
+        <span className="stat-box-value">
           {allocated}
         </span>
         <span className="stat-box-subtext">Assigned to authorized evaluator faculty</span>
@@ -74,7 +74,7 @@ export default function MetricCards({ metrics, students = [] }) {
             <CheckCircle2 size={18} color="#FC6C26" />
           </div>
         </div>
-        <span className="stat-box-value" style={{ color: '#064E3B' }}>
+        <span className="stat-box-value">
           {evaluated}
         </span>
         <span className="stat-box-subtext">Grading completed and marks submitted</span>
@@ -88,7 +88,7 @@ export default function MetricCards({ metrics, students = [] }) {
             <RotateCcw size={18} color="#FC6C26" />
           </div>
         </div>
-        <span className="stat-box-value" style={{ color: '#064E3B' }}>
+        <span className="stat-box-value">
           {sentForEvaluation}
         </span>
         <span className="stat-box-subtext">In scrutiny / revaluation queue</span>

@@ -329,9 +329,9 @@ export default function EvaluationStudio({
                 style={{
                   padding: '4px 8px',
                   borderRadius: '4px',
-                  border: '1.5px solid #FC6C26',
-                  background: '#F8E7C9',
-                  color: '#064E3B',
+                  border: '1.5px solid var(--border-strong)',
+                  background: 'var(--surface-glass)',
+                  color: 'var(--text-main)',
                   fontWeight: 700,
                   fontSize: '12px',
                   cursor: 'pointer'
@@ -375,13 +375,13 @@ export default function EvaluationStudio({
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
-              background: 'rgba(252, 108, 38, 0.1)',
+              background: 'var(--surface-glass-accent)',
               padding: '6px 16px',
-              borderBottom: '1px solid #FC6C26',
+              borderBottom: '1px solid var(--border-subtle)',
               overflowX: 'auto',
               whiteSpace: 'nowrap'
             }}>
-              <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: '#064E3B', marginRight: '4px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-main)', marginRight: '4px' }}>
                 Pages:
               </span>
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
@@ -392,9 +392,9 @@ export default function EvaluationStudio({
                   style={{
                     padding: '2px 8px',
                     borderRadius: '4px',
-                    border: '1px solid #FC6C26',
-                    background: currentPage === p ? '#FC6C26' : '#F8E7C9',
-                    color: '#064E3B',
+                    border: '1px solid var(--border-strong)',
+                    background: currentPage === p ? 'var(--accent-orange)' : 'var(--surface-glass)',
+                    color: currentPage === p ? '#fff' : 'var(--text-main)',
                     fontWeight: currentPage === p ? 800 : 600,
                     fontSize: '11px',
                     cursor: 'pointer',
@@ -491,40 +491,40 @@ export default function EvaluationStudio({
               </button>
             </div>
 
-            <div style={{ background: 'rgba(252, 108, 38, 0.1)', padding: '16px', borderRadius: '8px', border: '1.5px solid #FC6C26', marginBottom: '18px' }}>
+            <div style={{ background: 'var(--surface-glass-accent)', padding: '16px', borderRadius: '8px', border: '1.5px solid var(--border-strong)', marginBottom: '18px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: '#064E3B' }}>Candidate Name:</span>
-                <strong style={{ fontSize: '13px', color: '#064E3B' }}>{student.name || student.studentName}</strong>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>Candidate Name:</span>
+                <strong style={{ fontSize: '13px', color: 'var(--text-main)' }}>{student.name || student.studentName}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: '#064E3B' }}>Enrollment Number:</span>
-                <strong style={{ fontSize: '13px', color: '#064E3B', fontFamily: 'monospace' }}>{student.enrollmentNumber || student.enrollment}</strong>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>Enrollment Number:</span>
+                <strong style={{ fontSize: '13px', color: 'var(--text-main)', fontFamily: 'monospace' }}>{student.enrollmentNumber || student.enrollment}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: '#064E3B' }}>Subject:</span>
-                <strong style={{ fontSize: '13px', color: '#064E3B' }}>{student.subject || student.subjectTitle || student.subjectCode}</strong>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>Subject:</span>
+                <strong style={{ fontSize: '13px', color: 'var(--text-main)' }}>{student.subject || student.subjectTitle || student.subjectCode}</strong>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed #FC6C26' }}>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#064E3B' }}>Total Evaluated Marks:</span>
-                <span style={{ fontSize: '22px', fontWeight: 800, color: '#064E3B' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed var(--border-strong)' }}>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>Total Evaluated Marks:</span>
+                <span style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-main)' }}>
                   {totalAwarded} / {totalMax} ({((totalAwarded / totalMax) * 100).toFixed(1)}%)
                 </span>
               </div>
             </div>
 
-            <div style={{ marginBottom: '18px', maxHeight: '140px', overflowY: 'auto', border: '1px solid rgba(252, 108, 38, 0.3)', borderRadius: '6px', padding: '10px' }}>
-              <div style={{ fontSize: '11.5px', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px', color: '#FC6C26' }}>
+            <div style={{ marginBottom: '18px', maxHeight: '140px', overflowY: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '6px', padding: '10px' }}>
+              <div style={{ fontSize: '11.5px', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px', color: 'var(--accent-orange)' }}>
                 Question-wise Breakdown:
               </div>
               {questions.map((q, idx) => (
-                <div key={q.id || idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '3px 0', borderBottom: idx < questions.length - 1 ? '1px dotted rgba(6, 78, 59, 0.15)' : 'none' }}>
+                <div key={q.id || idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '3px 0', borderBottom: idx < questions.length - 1 ? '1px dotted var(--border-subtle)' : 'none' }}>
                   <span>{q.label}</span>
                   <strong>{q.marks} / {q.maxMarks}</strong>
                 </div>
               ))}
             </div>
 
-            <p style={{ fontSize: '12.5px', color: '#064E3B', marginBottom: '20px', lineHeight: 1.5 }}>
+            <p style={{ fontSize: '12.5px', color: 'var(--text-main)', marginBottom: '20px', lineHeight: 1.5 }}>
               Are you sure you want to finally submit the evaluated marks of <strong>{totalAwarded} / {totalMax}</strong> for candidate <strong>{student.name || student.studentName}</strong>? Once confirmed, this evaluation is locked and recorded officially.
             </p>
 
