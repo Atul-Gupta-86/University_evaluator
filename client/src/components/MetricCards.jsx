@@ -91,7 +91,7 @@ export default function MetricCards({ metrics, students = [] }) {
         <span className="stat-box-value">
           {sentForEvaluation}
         </span>
-        <span className="stat-box-subtext">In scrutiny / revaluation queue</span>
+        <span className="stat-box-subtext">In revaluation queue</span>
       </div>
     </div>
   );

@@ -1,5 +1,13 @@
 require('dotenv').config();
 const { MongoClient, ObjectId } = require('mongodb');
+const dns = require('dns');
+
+// Fix for Node.js querySrv ECONNREFUSED on Windows/routers where default DNS fails to resolve MongoDB Atlas SRV records
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+  console.warn('[MongoDB DNS] Could not set custom DNS servers:', e.message);
+}
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/mponline_evaluation';
 const CENTRAL_DB_NAME = 'mponline_central';

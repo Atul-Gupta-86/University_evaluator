@@ -3,11 +3,11 @@ import { X, ZoomIn, ZoomOut, RotateCw, CheckCircle2, AlertTriangle, ChevronLeft,
 import { submitEvaluation, flagRevaluation, fetchDocumentPageCount } from '../api';
 
 const DEFAULT_QUESTIONS = [
-  { id: 'q1', label: 'Question 1: Core Concept Definition', maxMarks: 10, marks: 0 },
-  { id: 'q2', label: 'Question 2: Architectural Proof / Derivation', maxMarks: 15, marks: 0 },
-  { id: 'q3', label: 'Question 3: Algorithm Design & Analysis', maxMarks: 15, marks: 0 },
-  { id: 'q4', label: 'Question 4: Practical Implementation / Case', maxMarks: 10, marks: 0 },
-  { id: 'q5', label: 'Question 5: Critical Evaluation & Schema', maxMarks: 20, marks: 0 }
+  { id: 'q1', label: 'Question 1: ', maxMarks: 10, marks: 0 },
+  { id: 'q2', label: 'Question 2: ', maxMarks: 15, marks: 0 },
+  { id: 'q3', label: 'Question 3: ', maxMarks: 15, marks: 0 },
+  { id: 'q4', label: 'Question 4: ', maxMarks: 10, marks: 0 },
+  { id: 'q5', label: 'Question 5: ', maxMarks: 20, marks: 0 }
 ];
 
 export default function EvaluationStudio({ 
@@ -19,7 +19,7 @@ export default function EvaluationStudio({
   onNotify 
 }) {
   const [currentPage, setCurrentPage] = useState(1);
-  const [zoom, setZoom] = useState(1.0);
+  const [zoom, setZoom] = useState(1.45);
   const [remarks, setRemarks] = useState(student.evaluation?.remarks || '');
   const [questions, setQuestions] = useState(() => {
     if (student.evaluation?.breakdown && student.evaluation.breakdown.length > 0) {
@@ -252,9 +252,9 @@ export default function EvaluationStudio({
       </div>
 
       {/* 3-Section Workspace */}
-      <div className="evaluation-workspace">
+      <div className="evaluation-workspace" style={{ display: 'flex' }}>
         {/* SECTION 1 (Left): Marking Section */}
-        <div className="eval-section-marking">
+        <div className="eval-section-marking" style={{ width: '20%'}} >
           <div className="section-title">
             <span>Marking Scheme & Scores</span>
             <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{questions.length} Items</span>
@@ -318,7 +318,7 @@ export default function EvaluationStudio({
         </div>
 
         {/* SECTION 2 (Center): Scanned Answer Sheet Canvas Viewer */}
-        <div className="eval-section-viewer">
+        <div className="eval-section-viewer" style={{ width: '38%'}}>
           <div className="viewer-toolbar">
             <div className="viewer-page-controls">
               <button
@@ -371,7 +371,7 @@ export default function EvaluationStudio({
               <button className="btn btn-secondary btn-sm btn-icon-only" onClick={() => setZoom(z => Math.min(2.5, z + 0.15))}>
                 <ZoomIn size={14} />
               </button>
-              <button className="btn btn-secondary btn-sm btn-icon-only" onClick={() => setZoom(1.0)}>
+              <button className="btn btn-secondary btn-sm btn-icon-only" onClick={() => setZoom(1.45)}>
                 <RotateCw size={14} />
               </button>
             </div>
@@ -435,7 +435,7 @@ export default function EvaluationStudio({
         </div>
 
         {/* SECTION 3 (Right): AI Summary (Strictly left empty as designed) */}
-        <div className="eval-section-ai">
+        <div className="eval-section-ai" style={{ width: '42%' }}>
           <div className="ai-summary-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Bot size={16} />
@@ -443,7 +443,46 @@ export default function EvaluationStudio({
             </div>
           </div>
           <div className="ai-summary-body">
-            {/* Strictly left empty as per architectural design requirement */}
+            <div style={{color: "#70c666ff"}}>Correct Steps <br/><br/></div>
+ -  Initialized low = 0 and high = n-1 (12) <br/>
+
+ -  Computed mid as (low+high)/2 <br/>
+
+ -  Compared target with element at mid and adjusted bounds <br/>
+
+ -  Performed a second iteration with updated low/high <br/>
+
+ -  Identified the target value 123 at index 4 (0-based) in one of the lists  <br/><br/>
+
+<div style={{color: "#ff4245ff"}}>
+Incorrect Logic/Math<br/><br/> 
+ </div>
+ - The sorted list used by the student contains many incorrect numbers (e.g., 108, 143, 197, 270) that do not match the ground-truth list<br/>
+ - Mid-value updates are inconsistent; at one point the student says the target is less than mid yet later treats mid as smaller than target<br/>
+
+ - Low/high updates are sometimes reversed (e.g., setting low=5 while mid becomes 4)<br/>
+
+ - Final index is not clearly stated in a clean, unambiguous form<br/>
+
+<br/>
+<div style={{color: "#ece75f"}}>
+ - Missing Steps<br/><br/></div>
+
+ - Explicit statement that the list must be sorted before binary search
+
+ - Clear termination condition when low exceeds high
+
+ - Correct handling of integer division for mid calculation
+Irrelevant
+
+All text related to Job scheduling, Knapsack problem, and asymptotic notation (Pages 1-4, 8-11)
+
+Repeated OCR noise tables and diagrams unrelated to binary search
+
+Rationale & Ground Truth Match
+
+The student demonstrates basic understanding of binary search mechanics-initialising low/high, computing mid, and adjusting bounds-but the answer is marred by an incorrect sorted list, inconsistent mid updates, and unclear final indexing. OCR errors are tolerated, yet the logical flow contains genuine mistakes, warranting partial credit.
+
           </div>
         </div>
       </div>

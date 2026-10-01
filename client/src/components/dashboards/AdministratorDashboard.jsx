@@ -262,7 +262,7 @@ export default function AdministratorDashboard({
           onClick={() => setActiveTab('teachers')}
         >
           <UserCheck size={15} />
-          Teachers Scrutiny & Performance ({teachers.length})
+          Evaluators Performance ({teachers.length})
         </button>
 
         <button 
@@ -280,7 +280,7 @@ export default function AdministratorDashboard({
           <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
             <div>
               <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.2px' }}>
-                Revaluation & Scrutiny Section
+                Revaluation Scripts List
               </h2>
               <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
                 Scripts flagged by evaluators for marks revision or discrepancy. Choose to either allocate to a new teacher or check directly by yourself.
@@ -480,8 +480,7 @@ export default function AdministratorDashboard({
       {activeTab === 'teachers' && (
         <div>
           <div style={{ marginBottom: '24px' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: 700 }}>Active Academic Evaluators Registry & Performance</h3>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Teachers currently receiving answer sheet allocations and submitting evaluations.</p>
+            <h3 style={{ fontSize: '15px', fontWeight: 700, fontSize: "25px", display: 'flex', justifyContent: 'center'}}>Evaluators Performance</h3>
           </div>
 
           <div className="table-responsive">
@@ -548,9 +547,6 @@ export default function AdministratorDashboard({
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Shield size={20} color="#FC6C26" /> Provision Admin Cell Account
               </h3>
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Create evaluation administrators who manage teacher assignments and scrutiny in this university.
-              </p>
             </div>
             <div className="card-body">
               <form onSubmit={handleAddAdmin}>
@@ -564,9 +560,6 @@ export default function AdministratorDashboard({
                     onChange={(e) => setNewAdminEmail(e.target.value)}
                     required
                   />
-                  <small style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
-                    Used for logging into this university's Admin portal.
-                  </small>
                 </div>
 
                 <div className="form-group">
@@ -654,9 +647,6 @@ export default function AdministratorDashboard({
                 <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Shield size={20} color="#10b981" /> Provisioned Admin Cell Officers ({admins.length})
                 </h3>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  Institutional accounts stored in this university's database <code>users</code> folder.
-                </p>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -665,7 +655,7 @@ export default function AdministratorDashboard({
                   <input
                     type="text"
                     className="form-control"
-                    placeholder="Search admin..."
+                    placeholder="      Search admin..."
                     value={adminSearchQuery}
                     onChange={(e) => setAdminSearchQuery(e.target.value)}
                     style={{ paddingLeft: '32px', fontSize: '12px' }}

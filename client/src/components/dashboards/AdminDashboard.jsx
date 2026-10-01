@@ -346,7 +346,7 @@ export default function AdminDashboard({
           {/* Allocation Action Bar */}
           <div className="allocation-bar liquid-glass" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
             <div className="allocation-controls">
-              <label style={{ margin: 0, whiteSpace: 'nowrap' }}>Select Evaluator Teacher:</label>
+              <label style={{ margin: 0, whiteSpace: 'nowrap',marginLeft: '7px' }}>Select Evaluator Teacher:</label>
               <select
                 style={{ minWidth: '260px', background: 'var(--bg-card, #111827)', color: 'var(--text-main, #ffffff)' }}
                 value={selectedTeacherEmail}
@@ -536,9 +536,7 @@ export default function AdminDashboard({
       {/* TAB 2: Teachers Performance */}
       {activeTab === 'teachers' && (
         <div className="liquid-glass" style={{ padding: '24px', borderRadius: '4px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '6px' }}>Teachers Evaluation Performance Metrics</h3>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>Live evaluation statistics calculated from MongoDB Atlas.</p>
-
+          <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '10px', display: 'flex', justifyContent: 'center' }}>Examiner performance analytics</h3>
           <div className="table-responsive">
             <table>
               <thead>
@@ -595,8 +593,7 @@ export default function AdminDashboard({
       {/* TAB 3: Enrollment List */}
       {activeTab === 'enrollments' && (
         <div className="liquid-glass" style={{ padding: '24px', borderRadius: '4px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '6px' }}>University Candidate Enrollment Register</h3>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>Complete roster of candidates enrolled across examination subjects.</p>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '10px', display: 'flex', justifyContent: 'center' }}>Enrolled Candidate in University</h3>
 
           <div className="table-responsive">
             <table>
@@ -617,7 +614,7 @@ export default function AdminDashboard({
                     <td>{formatDeptSubject(s, subjects)}</td>
                     <td>
                       <span className="cloudinary-status-tag">
-                        {(s.copy_url || s.copyUrl || s.fileUrl)?.includes('cloudinary') ? 'Cloudinary CDN Script' : (s.fileName || 'Scanned Document')}
+                        {(s.copy_url || s.copyUrl || s.fileUrl)?.includes('cloudinary') ? 'Uploaded' : (s.fileName || 'Scanned Document')}
                       </span>
                     </td>
                     <td>
@@ -639,7 +636,7 @@ export default function AdminDashboard({
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 300px) minmax(0, 1fr)', gap: '16px', alignItems: 'start', width: '100%', maxWidth: '100%' }}>
           {/* Registration Form */}
           <div className="liquid-glass" style={{ padding: '18px', borderRadius: '4px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px' }}>Register New Evaluator</h3>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px', display: 'flex', justifyContent: 'center' }}>Register New Evaluator</h3>
             <form onSubmit={handleAddTeacherSubmit}>
               <div className="form-group">
                 <label>Teacher Full Name *</label>
@@ -740,8 +737,8 @@ export default function AdminDashboard({
 
           {/* Active Registry Table with Remove Teacher option */}
           <div className="liquid-glass" style={{ padding: '18px', borderRadius: '4px', minWidth: 0, width: '100%' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '4px' }}>Active Evaluator Registry</h3>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px' }}>Teachers currently able to log in and receive answer sheet allocations.</p>
+            <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '10px', display: 'flex', justifyContent: 'center' }}>Active Evaluator Registry</h3>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px', display: 'flex', justifyContent: 'center' }}>Teachers currently able to log in and receive answer sheet allocations.</p>
 
             <div className="table-responsive" style={{ width: '100%', maxWidth: '100%' }}>
               <table style={{ width: '100%' }}>
@@ -797,11 +794,7 @@ export default function AdminDashboard({
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 300px) minmax(0, 1fr)', gap: '16px', alignItems: 'start', width: '100%', maxWidth: '100%' }}>
           {/* Add Answer Reference Form */}
           <div className="liquid-glass" style={{ padding: '18px', borderRadius: '4px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px' }}>Add Answer Reference</h3>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-              Publish official model solutions and marking schemes into Cloudinary CDN.
-            </p>
-
+            <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '10px', display: 'flex', justifyContent: 'center' }}>Add Answer Reference</h3>
             <form onSubmit={handlePublishReference}>
               <div className="form-group">
                 <label>Academic Department *</label>
@@ -903,10 +896,7 @@ export default function AdminDashboard({
 
           {/* Official References Table with "View Reference Document" Button */}
           <div className="liquid-glass" style={{ padding: '18px', borderRadius: '4px', minWidth: 0, width: '100%', overflow: 'hidden' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '4px' }}>Official Answer References & Subject Documents</h3>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px' }}>
-              Inspect the official model solution document uploaded for respective subject code and exam session.
-            </p>
+            <h3 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '10px', display: 'flex', justifyContent: 'center' }}>Official Answer References</h3>
 
             <div className="table-responsive" style={{ width: '100%', maxWidth: '100%' }}>
               <table style={{ width: '100%' }}>

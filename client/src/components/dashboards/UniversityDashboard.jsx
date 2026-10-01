@@ -357,19 +357,19 @@ export default function UniversityDashboard({
             className={`btn ${activeTab === 'administrators' ? 'btn-primary' : 'btn-outline'}`}
             onClick={() => setActiveTab('administrators')}
           >
-            <ShieldCheck size={16} /> Add Administrator ({administrators.length})
+            <ShieldCheck size={16} /> Manage Administrators ({administrators.length})
           </button>
           <button
             className={`btn ${activeTab === 'departments' ? 'btn-primary' : 'btn-outline'}`}
             onClick={() => setActiveTab('departments')}
           >
-            <Building2 size={16} /> Academic Departments ({departments.length})
+            <Building2 size={16} /> Manage Academic Departments ({departments.length})
           </button>
           <button
             className={`btn ${activeTab === 'subjects' ? 'btn-primary' : 'btn-outline'}`}
             onClick={() => setActiveTab('subjects')}
           >
-            <BookOpen size={16} /> Subject Curriculum ({subjects.length})
+            <BookOpen size={16} /> Manage Academic Subjects({subjects.length})
           </button>
         </div>
       </div>
@@ -569,15 +569,12 @@ export default function UniversityDashboard({
                   <input
                     type="text"
                     className="form-control"
-                    placeholder="Search roll, name, subject..."
+                    placeholder="     Search roll, name, subject..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     style={{ paddingLeft: '32px', width: '220px', height: '36px', fontSize: '12px' }}
                   />
                 </div>
-                <button className="btn btn-outline btn-sm" onClick={onRefresh} title="Refresh records">
-                  <RefreshCw size={14} />
-                </button>
               </div>
             </div>
 

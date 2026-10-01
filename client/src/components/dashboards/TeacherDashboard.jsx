@@ -192,7 +192,7 @@ export default function TeacherDashboard({
           <span className="stat-box-value" style={{ color: '#FC6C26' }}>
             {evaluationQueueCount}
           </span>
-          <span className="stat-box-subtext">Sent to scrutiny queue</span>
+          <span className="stat-box-subtext">Sent to revaluation queue</span>
         </div>
       </div>
 
@@ -200,26 +200,26 @@ export default function TeacherDashboard({
       <div className="card">
         <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '18px' }}>
           <div>
-            <h3>Assigned Examination Scripts</h3>
+            <h3>Students Answer Scripts</h3>
             <p style={{ margin: 0, fontSize: '12px' }}>
-              Logged in Evaluator: <strong>{currentUser?.name || 'Authorized Teacher'}</strong> ({currentUser?.subject || 'All Subjects'})
+              Logged in Evaluator: <strong>{currentUser?.name || 'Authorized Teacher'}</strong>   <br></br> Subject: {currentUser?.subject || 'All Subjects'}
             </p>
           </div>
 
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ position: 'relative' }}>
-              <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#FC6C26' }} />
+              <Search size={10} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#FC6C26' }} />
               <input
                 type="text"
                 className="form-control"
-                placeholder="Search candidates..."
+                placeholder="    Search candidates..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ paddingLeft: '32px', width: '200px', height: '36px', fontSize: '12px' }}
               />
             </div>
 
-            <div style={{ display: 'flex', background: 'rgba(0,0,0,0.04)', padding: '3px', borderRadius: '8px' }}>
+            <div style={{ display: 'flex', background: 'rgba(0,0,0,0.04)', gap: '7px', padding: '3px', borderRadius: '8px' }}>
               <button 
                 className={`btn btn-sm ${filterTab === 'all' ? 'btn-primary' : 'btn-outline'}`}
                 style={{ border: 'none' }}
@@ -250,7 +250,7 @@ export default function TeacherDashboard({
             <table className="table">
               <thead>
                 <tr>
-                  <th>Roll / Enrollment</th>
+                  <th>Enrollment</th>
                   <th>Department : Subject</th>
                   <th>Status</th>
                   <th>Awarded Marks</th>
